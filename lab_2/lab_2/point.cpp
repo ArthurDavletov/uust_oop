@@ -4,7 +4,7 @@
 #include <cstdint>
 
 Point::Point() {
-  std::cout << "Вызван конструктор по-умолчанию Point()\n";
+  std::cout << "Вызван конструктор по умолчанию Point()\n";
 }
 
 Point::Point(int64_t x, int64_t y) : x_(x), y_(y) {
