@@ -6,9 +6,9 @@ class Point {
 public:
   Point() = default;
   Point(int64_t x, int64_t y);
-  const int64_t GetX() const { return x_; }
-  const int64_t GetY() const { return y_; }
-  const std::string ToString() const;
+  int64_t GetX() const { return x_; }
+  int64_t GetY() const { return y_; }
+  std::string ToString() const;
   ~Point();
 
 private:

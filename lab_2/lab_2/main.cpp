@@ -1,7 +1,7 @@
 ﻿#include <iostream>
 #include <windows.h>
 
-#include "geometry.h"
+#include "point.h"
 
 
 int main() {
