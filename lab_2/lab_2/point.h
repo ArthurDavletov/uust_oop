@@ -4,7 +4,7 @@
 
 class Point {
 public:
-  Point() = default;
+  Point();
   Point(int64_t x, int64_t y);
   int64_t GetX() const { return x_; }
   int64_t GetY() const { return y_; }
