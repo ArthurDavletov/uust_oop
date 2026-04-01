@@ -1,4 +1,4 @@
-#include "geometry.h"
+#include "point.h"
 #include <iostream>
 #include <string>
 #include <cstdint>
@@ -11,6 +11,6 @@ Point::~Point() {
   std::cout << "Вызван деструктор " << ToString() << '\n';
 }
 
-const std::string Point::ToString() const {
+std::string Point::ToString() const {
   return "Point(" + std::to_string(x_) + ", " + std::to_string(y_) + ")";
 }
