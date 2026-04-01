@@ -39,5 +39,17 @@
 
 # debug information files
 *.dwo
-/lab_1/.idea
-/lab_1/__pycache__
+
+# Python files
+.idea
+__pycache__
+
+# Настройки Visual Studio
+.vs/
+lab_2.vcxproj
+lab_2.vcxproj.filters
+lab_2.vcxproj.user
+lab_2.slnx
+
+# Файлы C++
+x64/
