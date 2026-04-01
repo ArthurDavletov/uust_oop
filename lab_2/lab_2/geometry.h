@@ -1,16 +1,17 @@
-#ifndef GEOMETRY_H
-#define GEOMETRY_H
-
+#pragma once
 #include <cstdint>
+#include <string>
 
 class Point {
 public:
- Point(int64_t x, int64_t y): x_(x), y_(y) {}
+  Point() = default;
+  Point(int64_t x, int64_t y);
+  const int64_t GetX() const { return x_; }
+  const int64_t GetY() const { return y_; }
+  const std::string ToString() const;
+  ~Point();
 
 private:
   int64_t x_ = 0;
   int64_t y_ = 0;
 };
-
-
-#endif  // !GEOMETRY_H

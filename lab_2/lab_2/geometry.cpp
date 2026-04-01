@@ -1,0 +1,16 @@
+#include "geometry.h"
+#include <iostream>
+#include <string>
+#include <cstdint>
+
+Point::Point(int64_t x, int64_t y) : x_(x), y_(y) {
+  std::cout << "Вызван конструктор " << ToString() << '\n';
+}
+
+Point::~Point() {
+  std::cout << "Вызван деструктор " << ToString() << '\n';
+}
+
+const std::string Point::ToString() const {
+  return "Point(" + std::to_string(x_) + ", " + std::to_string(y_) + ")";
+}
