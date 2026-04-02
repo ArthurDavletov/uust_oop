@@ -27,7 +27,7 @@ Square::Square(Square&& other) noexcept : center_(std::move(other.center_)), sid
 
 std::string Square::ToString() const {
   std::cout << "Вызван метод ToString для Square\n";
-  return std::format("Sqaure({}, {})", center_.ToString(), side_length_);
+  return std::format("Square({}, {})", center_.ToString(), side_length_);
 }
 
 double Square::Area() const {
