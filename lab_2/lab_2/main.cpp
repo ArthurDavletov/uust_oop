@@ -3,6 +3,8 @@
 
 #include "point.h"
 #include "segment.h"
+#include "sqaure.h"
+#include "circle.h"
 
 void PointCheck() {
   Point* point = new Point(1, 2);
@@ -14,15 +16,28 @@ void SegmentCheck() {
   delete segment;
 }
 
+void SquareCheck() {
+  Square* square = new Square(Point(1, 2), 3);
+  delete square;
+}
+
+void CircleCheck() {
+  Circle* circle = new Circle(Point(1, 2), 3);
+  delete circle;
+} 
+
 int main() {
   // Исправление русского языка в консоли Windows
   SetConsoleCP(CP_UTF8);
   SetConsoleOutputCP(CP_UTF8);
+  std::cout << "==========\n";
   PointCheck();
   std::cout << "==========\n";
   SegmentCheck();
-
-  std::cout << "Hello World!\n";
-  std::cout << "Привет, мир!\n";
-  std::cout << std::endl;
+  std::cout << "==========\n";
+  SquareCheck();
+  std::cout << "==========\n";
+  CircleCheck();
+  std::cout << "==========\n";
+  std::cout << "Hello World! Привет, мир!" << std::endl;
 }
