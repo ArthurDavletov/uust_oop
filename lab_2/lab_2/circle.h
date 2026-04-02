@@ -7,6 +7,8 @@ class Circle : public ClosedShape {
 public:
   Circle();
   Circle(const Point& center, double radius);
+  Circle(const Circle& other);
+  Circle(Circle&& other) noexcept;
   ~Circle() override;
   double Area() const override;
   double Perimeter() const override;

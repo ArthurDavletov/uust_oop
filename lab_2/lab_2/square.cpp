@@ -1,7 +1,8 @@
 #include <iostream>
 #include <format>
 #include <string>
-#include "sqaure.h"
+#include <utility>
+#include "square.h"
 #include "point.h"
 
 Square::Square() {
@@ -14,6 +15,14 @@ Square::Square(const Point& center, double side_length) : center_(center), side_
 
 Square::~Square() {
   std::cout << "Вызван деструктор для Square\n";
+}
+
+Square::Square(const Square& other) : center_(other.center_), side_length_(other.side_length_) {
+  std::cout << "Вызван конструктор копирования для Square\n";
+}
+
+Square::Square(Square&& other) noexcept : center_(std::move(other.center_)), side_length_(other.side_length_) {
+  std::cout << "Вызван конструктор перемещения для Square\n";
 }
 
 std::string Square::ToString() const {

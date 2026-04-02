@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <format>
+#include <utility>
 #include <numbers>
 #include "point.h"
 
@@ -11,6 +12,14 @@ Circle::Circle() {
 
 Circle::Circle(const Point& center, double radius) : center_(center), radius_(radius) {
   std::cout << "Вызван конструктор с параметрами для Circle\n";
+}
+
+Circle::Circle(const Circle& other) : center_(other.center_), radius_(other.radius_) {
+  std::cout << "Вызван конструктор копирования для Circle\n";
+}
+
+Circle::Circle(Circle&& other) noexcept : center_(std::move(other.center_)), radius_(other.radius_) {
+  std::cout << "Вызван конструктор перемещения для Circle\n";
 }
 
 Circle::~Circle() {

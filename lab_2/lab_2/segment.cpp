@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include <cmath>
+#include <utility>
 #include <format>
 #include "segment.h"
 #include "point.h"
@@ -18,8 +19,16 @@ Segment::Segment(double x1, double y1, double x2, double y2)
   std::cout << "Вызван конструктор с параметрами (4 числа) для Segment\n";
 }
 
-Segment::Segment(const Point& p1, const Point& p2) : p1_(p1), p2_(p1) {
+Segment::Segment(const Point& p1, const Point& p2) : p1_(p1), p2_(p2) {
   std::cout << "Вызван конструктор с параметрами (2 точки) для Segment\n";
+}
+
+Segment::Segment(const Segment& other) : p1_(other.p1_), p2_(other.p2_) {
+  std::cout << "Вызван конструктор копирования для Segment\n";
+}
+
+Segment::Segment(Segment&& other) noexcept : p1_(std::move(other.p1_)), p2_(std::move(other.p2_)) {
+  std::cout << "Вызван конструктор перемещения для Segment\n";
 }
 
 double Segment::GetLength() const {

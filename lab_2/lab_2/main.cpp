@@ -3,7 +3,7 @@
 
 #include "point.h"
 #include "segment.h"
-#include "sqaure.h"
+#include "square.h"
 #include "circle.h"
 
 void PointCheck() {

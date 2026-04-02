@@ -9,6 +9,8 @@ public:
   ~Segment() override;
   Segment(double x1, double y1, double x2, double y2);
   Segment(const Point& p1, const Point& p2);
+  Segment(const Segment& other);
+  Segment(Segment&& other) noexcept;
   double GetLength() const;
   std::string ToString() const override;
 private:
