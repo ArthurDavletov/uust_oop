@@ -7,8 +7,12 @@ public:
   Point(double x, double y);
   Point(const Point& other);
   Point(Point&& other) noexcept;
+  Point& operator=(const Point& other);
   double GetX() const { return x_; }
   double GetY() const { return y_; }
+  void SetX(double x);
+  void SetY(double y);
+  void SetXY(double x, double y);
   std::string ToString() const;
   ~Point();
 

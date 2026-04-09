@@ -19,6 +19,31 @@ Point::Point(Point&& other) noexcept : x_(other.GetX()), y_(other.GetY()) {
   std::cout << "Вызван конструктор перемещения Point\n";
 }
 
+Point& Point::operator=(const Point& other) {
+  std::cout << "Вызван оператор присваивания для Point\n";
+  if (this != &other) {
+    x_ = other.GetX();
+    y_ = other.GetY();
+  }
+  return *this;
+}
+
+void Point::SetX(double x) {
+  std::cout << "Вызван метод SetX для Point\n";
+  x_ = x;
+}
+
+void Point::SetY(double y) {
+  std::cout << "Вызван метод SetY для Point\n";
+  y_ = y;
+}
+
+void Point::SetXY(double x, double y) {
+  std::cout << "Вызван метод SetXY для Point\n";
+  x_ = x;
+  y_ = y;
+}
+
 Point::~Point() {
   std::cout << "Вызван деструктор Point\n";
 }
