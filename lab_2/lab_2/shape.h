@@ -3,6 +3,7 @@
 
 class Shape {
 public:
+  Shape();
   virtual std::string ToString() const = 0;
-  virtual ~Shape() = default;
+  virtual ~Shape();
 };
