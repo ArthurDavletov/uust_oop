@@ -26,6 +26,10 @@ Circle::~Circle() {
   std::cout << "Вызван деструктор для Circle\n";
 }
 
+std::string Circle::Description() const {
+  return std::format("Это Circle с центром в ({}, {}) и радиусом {}", center_.GetX(), center_.GetY(), radius_);
+}
+
 double Circle::Area() const {
   std::cout << "Вызван метод Area для Circle\n";
   return std::numbers::pi * radius_ * radius_;

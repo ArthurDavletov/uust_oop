@@ -11,6 +11,7 @@ public:
   Segment(const Point& p1, const Point& p2);
   Segment(const Segment& other);
   Segment(Segment&& other) noexcept;
+  std::string Description() const;
   double GetLength() const;
   std::string ToString() const override;
 private:

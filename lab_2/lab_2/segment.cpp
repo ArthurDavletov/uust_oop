@@ -31,6 +31,10 @@ Segment::Segment(Segment&& other) noexcept : p1_(std::move(other.p1_)), p2_(std:
   std::cout << "Вызван конструктор перемещения для Segment\n";
 }
 
+std::string Segment::Description() const {
+  return std::format("Это Segment с координатами начала ({}, {}) и конца ({}, {})", p1_.GetX(), p1_.GetY(), p2_.GetX(), p2_.GetY());
+}
+
 double Segment::GetLength() const {
   std::cout << "Вызван метод GetLength для Segment\n";
   double dx = p2_.GetX() - p1_.GetX();

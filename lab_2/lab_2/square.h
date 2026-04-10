@@ -10,6 +10,7 @@ public:
   Square(const Square& other);
   Square(Square&& other) noexcept;
   ~Square() override;
+  std::string Description() const;
   std::string ToString() const override;
   double Area() const override;
   double Perimeter() const override;

@@ -28,6 +28,10 @@ Point& Point::operator=(const Point& other) {
   return *this;
 }
 
+std::string Point::Description() const {
+  return std::format("Это Point с координатами ({}, {})", x_, y_);
+}
+
 void Point::SetX(double x) {
   std::cout << "Вызван метод SetX для Point\n";
   x_ = x;

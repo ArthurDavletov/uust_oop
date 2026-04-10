@@ -25,6 +25,10 @@ Square::Square(Square&& other) noexcept : center_(std::move(other.center_)), sid
   std::cout << "Вызван конструктор перемещения для Square\n";
 }
 
+std::string Square::Description() const {
+  return std::format("Это Square с центром в ({}, {}) и длиной стороны {}", center_.GetX(), center_.GetY(), side_length_);
+}
+
 std::string Square::ToString() const {
   std::cout << "Вызван метод ToString для Square\n";
   return std::format("Square({}, {})", center_.ToString(), side_length_);

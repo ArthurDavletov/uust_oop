@@ -10,6 +10,7 @@ public:
   Circle(const Circle& other);
   Circle(Circle&& other) noexcept;
   ~Circle() override;
+  std::string Description() const;
   double Area() const override;
   double Perimeter() const override;
   std::string ToString() const override;
