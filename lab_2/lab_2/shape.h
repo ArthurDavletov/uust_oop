@@ -7,4 +7,6 @@ public:
   std::string Description() const;
   virtual std::string ToString() const = 0;
   virtual ~Shape();
+protected:
+  std::string BaseInfo() const;
 };
