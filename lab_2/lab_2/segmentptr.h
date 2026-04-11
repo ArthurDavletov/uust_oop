@@ -3,10 +3,12 @@
 #include "shape.h"
 #include "point.h"
 
-class SegmentPtr : Shape {
+class SegmentPtr : public Shape {
 public:
   SegmentPtr();
   SegmentPtr(const Point& start, const Point& end);
+  SegmentPtr(const SegmentPtr& other);
+  SegmentPtr(SegmentPtr&& other) noexcept;
   std::string Description() const;
   std::string ToString() const override;
   ~SegmentPtr() override;

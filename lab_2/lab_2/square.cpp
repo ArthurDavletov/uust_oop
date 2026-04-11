@@ -2,6 +2,7 @@
 #include <format>
 #include <string>
 #include <utility>
+#include "shape.h"
 #include "square.h"
 #include "point.h"
 
@@ -26,7 +27,8 @@ Square::Square(Square&& other) noexcept : center_(std::move(other.center_)), sid
 }
 
 std::string Square::Description() const {
-  return std::format("Это Square с центром в ({}, {}) и длиной стороны {}", center_.GetX(), center_.GetY(), side_length_);
+  std::cout << "Вызван метод Description для Square\n";
+  return std::format("Это {}, {}", Shape::Description(), ToString());
 }
 
 std::string Square::ToString() const {

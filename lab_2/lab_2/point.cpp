@@ -19,16 +19,8 @@ Point::Point(Point&& other) noexcept : x_(other.GetX()), y_(other.GetY()) {
   std::cout << "Вызван конструктор перемещения Point\n";
 }
 
-Point& Point::operator=(const Point& other) {
-  std::cout << "Вызван оператор присваивания для Point\n";
-  if (this != &other) {
-    x_ = other.GetX();
-    y_ = other.GetY();
-  }
-  return *this;
-}
-
 std::string Point::Description() const {
+  std::cout << "Вызван метод Description для Point\n";
   return std::format("Это Point с координатами ({}, {})", x_, y_);
 }
 

@@ -7,6 +7,7 @@ ClosedShape::ClosedShape() {
 }
 
 std::string ClosedShape::Description() const {
+  std::cout << "Вызван метод Description для ClosedShape\n";
   return "Это ClosedShape";
 }
 

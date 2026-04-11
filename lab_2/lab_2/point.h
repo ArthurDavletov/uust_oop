@@ -7,7 +7,6 @@ public:
   Point(double x, double y);
   Point(const Point& other);
   Point(Point&& other) noexcept;
-  Point& operator=(const Point& other);
   std::string Description() const;
   double GetX() const { return x_; }
   double GetY() const { return y_; }

@@ -3,6 +3,7 @@
 #include <cmath>
 #include <utility>
 #include <format>
+#include "shape.h"
 #include "segment.h"
 #include "point.h"
 
@@ -32,7 +33,8 @@ Segment::Segment(Segment&& other) noexcept : p1_(std::move(other.p1_)), p2_(std:
 }
 
 std::string Segment::Description() const {
-  return std::format("Это Segment с координатами начала ({}, {}) и конца ({}, {})", p1_.GetX(), p1_.GetY(), p2_.GetX(), p2_.GetY());
+  std::cout << "Вызван метод Description для Segment\n";
+  return std::format("Это {}, {}", Shape::Description(), ToString());
 }
 
 double Segment::GetLength() const {
