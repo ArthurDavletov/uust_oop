@@ -3,14 +3,14 @@
 #include <string>
 
 ClosedShape::ClosedShape() {
-  std::cout << "Вызван конструктор по умолчанию для ClosedShape\n";
+  std::cout << "[DEBUG] Вызван конструктор по умолчанию для ClosedShape\n";
 }
 
 std::string ClosedShape::Description() const {
-  std::cout << "Вызван метод Description для ClosedShape\n";
+  std::cout << "[DEBUG] Вызван метод Description для ClosedShape\n";
   return "Это ClosedShape";
 }
 
 ClosedShape::~ClosedShape() {
-  std::cout << "Вызван деструктор для ClosedShape\n";
+  std::cout << "[DEBUG] Вызван деструктор для ClosedShape\n";
 }

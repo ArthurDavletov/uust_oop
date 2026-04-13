@@ -22,16 +22,16 @@ ColoredPoint::~ColoredPoint() {
 }
 
 void ColoredPoint::SetColor(const std::string& color) {
-  std::cout << "Вызван метод SetColor для ColoredPoint\n";
+  std::cout << "[DEBUG] Вызван метод SetColor для ColoredPoint\n";
   color_ = color;
 }
 
 std::string ColoredPoint::GetColor() const {
-  std::cout << "Вызван метод GetColor для ColoredPoint\n";
+  std::cout << "[DEBUG] Вызван метод GetColor для ColoredPoint\n";
   return color_;
 }
 
 std::string ColoredPoint::ToString() const {
-  std::cout << "Вызван метод ToString для ColoredPoint\n";
+  std::cout << "[DEBUG] Вызван метод ToString для ColoredPoint\n";
   return std::format("ColoredPoint({}, color = {})", Point::ToString(), color_);
 }

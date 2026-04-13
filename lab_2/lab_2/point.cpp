@@ -4,47 +4,47 @@
 #include <format>
 
 Point::Point() {
-  std::cout << "Вызван конструктор по умолчанию Point\n";
+  std::cout << "[DEBUG] Вызван конструктор по умолчанию Point\n";
 }
 
 Point::Point(double x, double y) : x_(x), y_(y) {
-  std::cout << "Вызван конструктор Point\n";
+  std::cout << "[DEBUG] Вызван конструктор с параметрами Point\n";
 }
 
 Point::Point(const Point& other) : x_(other.GetX()), y_(other.GetY()) {
-  std::cout << "Вызван конструктор копирования Point\n";
+  std::cout << "[DEBUG] Вызван конструктор копирования Point\n";
 }
 
 Point::Point(Point&& other) noexcept : x_(other.GetX()), y_(other.GetY()) {
-  std::cout << "Вызван конструктор перемещения Point\n";
+  std::cout << "[DEBUG] Вызван конструктор перемещения Point\n";
 }
 
 std::string Point::Description() const {
-  std::cout << "Вызван метод Description для Point\n";
+  std::cout << "[DEBUG] Вызван метод Description для Point\n";
   return std::format("Это Point с координатами ({}, {})", x_, y_);
 }
 
 void Point::SetX(double x) {
-  std::cout << "Вызван метод SetX для Point\n";
+  std::cout << "[DEBUG] Вызван метод SetX для Point\n";
   x_ = x;
 }
 
 void Point::SetY(double y) {
-  std::cout << "Вызван метод SetY для Point\n";
+  std::cout << "[DEBUG] Вызван метод SetY для Point\n";
   y_ = y;
 }
 
 void Point::SetXY(double x, double y) {
-  std::cout << "Вызван метод SetXY для Point\n";
+  std::cout << "[DEBUG] Вызван метод SetXY для Point\n";
   x_ = x;
   y_ = y;
 }
 
 Point::~Point() {
-  std::cout << "Вызван деструктор Point\n";
+  std::cout << "[DEBUG] Вызван деструктор Point\n";
 }
 
 std::string Point::ToString() const {
-  std::cout << "Вызван метод ToString для Point\n";
+  std::cout << "[DEBUG] Вызван метод ToString для Point\n";
   return std::format("Point({}, {})", x_, y_);
 }
