@@ -11,6 +11,8 @@ public:
   SegmentPtr(SegmentPtr&& other) noexcept;
   std::string Description() const;
   std::string ToString() const override;
+  void SetStart(double x, double y);
+  void SetEnd(double x, double y);
   ~SegmentPtr() override;
 private:
   Point* start_ = nullptr;
