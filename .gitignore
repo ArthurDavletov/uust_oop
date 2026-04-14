@@ -41,3 +41,12 @@
 *.dwo
 /lab_1/.idea
 /lab_1/__pycache__
+
+# python temp-files
+__pycache__
+
+# Visual Studio settings
+.vs 
+
+# PyCharm settings
+.idea
