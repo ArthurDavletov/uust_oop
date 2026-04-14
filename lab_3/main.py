@@ -61,10 +61,6 @@ class CircleStorage:
         for c in self._circles:
             yield c
 
-    def get_object(self) -> CCircle:
-        return self._circles[self._iter_index]
-
-
 class PaintArea(QWidget):
     def __init__(self, storage: CircleStorage, status_label: QLabel, parent: QWidget | None = None) -> None:
         super().__init__(parent)
