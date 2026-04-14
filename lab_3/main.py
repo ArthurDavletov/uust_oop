@@ -54,14 +54,8 @@ class CircleStorage:
     def count(self) -> int:
         return len(self._circles)
 
-    def first(self) -> None:
-        self._iter_index = 0
-
-    def next(self) -> None:
-        self._iter_index += 1
-
-    def eol(self) -> bool:
-        return self._iter_index >= len(self._circles)
+    def __len__(self):
+        return len(self._circles)
 
     def __iter__(self):
         for c in self._circles:
