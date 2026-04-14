@@ -46,10 +46,10 @@ __pycache__
 
 # Настройки Visual Studio
 .vs/
-lab_2.vcxproj
-lab_2.vcxproj.filters
-lab_2.vcxproj.user
-lab_2.slnx
+# lab_2.vcxproj
+# lab_2.vcxproj.filters
+# lab_2.vcxproj.user
+# lab_2.slnx
 
 # Файлы C++
 x64/
