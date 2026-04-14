@@ -123,7 +123,7 @@ class PaintArea(QWidget):
         self._update_status()
 
     def _update_status(self) -> None:
-        self._status_label.setText(f"Кругов: {self._storage.count()}")
+        self._status_label.setText(f"Кругов: {len(self._storage)}")
 
 
 class MainWindow(QMainWindow):
