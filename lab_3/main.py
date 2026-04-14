@@ -1,6 +1,11 @@
 from PySide6.QtWidgets import QMainWindow, QApplication
 import sys
 
+from PySide6.QtCore import QPoint, Qt
+from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent, QPaintEvent, QPainter, QPen, QResizeEvent
+from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QVBoxLayout, QWidget
+
+
 class CCircle:
     def __init__(self, x: int, y: int, r: int):
         self.x = x
