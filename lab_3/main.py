@@ -35,7 +35,6 @@ class CCircle:
 class CircleStorage:
     def __init__(self) -> None:
         self._circles: list[CCircle] = []
-        self._iter_index = 0
 
     def add(self, circle: CCircle) -> None:
         self._circles.append(circle)
@@ -46,7 +45,6 @@ class CircleStorage:
 
     def remove_selected(self) -> None:
         self._circles = [circle for circle in self._circles if not circle.is_selected()]
-        self._iter_index = 0
 
     def hit_test(self, point: QPoint) -> list[CCircle]:
         return [circle for circle in reversed(self._circles) if circle.contains_point(point)]
@@ -66,7 +64,6 @@ class PaintArea(QWidget):
         super().__init__(parent)
         self._storage = storage
         self._status_label = status_label
-        self.setFocusPolicy(Qt.StrongFocus)
         self.setMouseTracking(True)
         self._update_status()
 
