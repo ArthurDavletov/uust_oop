@@ -48,5 +48,8 @@ __pycache__
 # Visual Studio settings
 .vs 
 
+# Файлы C++
+x64/
+
 # PyCharm settings
 .idea
