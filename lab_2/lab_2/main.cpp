@@ -79,8 +79,6 @@ void CompositionDemo() {
   std::cout << ptr_default.ToString() << "\n";
   std::cout << ptr_param.Description() << "\n";
   std::cout << ptr_copy.ToString() << "\n";
-  // После изменения ptr_copy исходный ptr_param не изменился,
-  // потому что конструктор копирования делает глубокую копию;
 }
 
 void AccessModifiersDemo() {
@@ -91,14 +89,14 @@ void AccessModifiersDemo() {
   std::cout << point.ToString() << "\n";
   std::cout << shape.RevealProtectedInfo() << "\n";
 
-  std::cout << "public: main может вызывать Point::SetXY и Point::ToString\n";
+  // public: программа может вызывать Point::SetXY и Point::ToString
   point.SetXY(9, 10);
   std::cout << point.ToString() << "\n";
-  std::cout << "protected: main не может вызвать Shape::BaseInfo напрямую, но наследник может\n";
-  std::cout << "private: main не может обратиться к Point::x_ и Point::y_ напрямую\n";
+  // protected: программа не может вызвать Shape::BaseInfo напрямую, но класс может
+  // private: программа не может обратиться к Point::x_ и Point::y_ напрямую
 
-  // point.x_ = 10;
-  // shape.BaseInfo();
+  // point.x_ = 10; - ошибка
+  // shape.BaseInfo(); - ошибка
 }
 
 void InheritanceWithoutOwnCtorDemo() {
