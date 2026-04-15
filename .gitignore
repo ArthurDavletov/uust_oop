@@ -54,3 +54,6 @@ x64/
 
 # PyCharm settings
 .idea
+
+# лишние zip-архивы
+*.zip
