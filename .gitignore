@@ -40,16 +40,17 @@
 # debug information files
 *.dwo
 
-# Python files
-.idea
+/lab_1/.idea
+/lab_1/__pycache__
+
+# python temp-files
 __pycache__
 
-# Настройки Visual Studio
-.vs/
-# lab_2.vcxproj
-# lab_2.vcxproj.filters
-# lab_2.vcxproj.user
-# lab_2.slnx
+# Visual Studio settings
+.vs 
 
 # Файлы C++
 x64/
+
+# PyCharm settings
+.idea
