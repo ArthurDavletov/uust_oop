@@ -39,6 +39,7 @@
 
 # debug information files
 *.dwo
+
 /lab_1/.idea
 /lab_1/__pycache__
 
