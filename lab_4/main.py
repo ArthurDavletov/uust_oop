@@ -123,11 +123,11 @@ class RectangleShape(Shape):
         painter.save()
         painter.setPen(QPen(QColor("#2d3436"), 2))
         painter.setBrush(self.color)
-        painter.drawRect(self.rect())
+        painter.drawRect(self._rect)
         painter.restore()
 
     def contains_point(self, point: QPointF) -> bool:
-        return self.rect().contains(point)
+        return self._rect.contains(point)
 
 
 class SquareShape(RectangleShape):
@@ -147,11 +147,11 @@ class EllipseShape(Shape):
         painter.save()
         painter.setPen(QPen(QColor("#2d3436"), 2))
         painter.setBrush(self.color)
-        painter.drawEllipse(self.rect())
+        painter.drawEllipse(self._rect)
         painter.restore()
 
     def contains_point(self, point: QPointF) -> bool:
-        rect = self.rect()
+        rect = self._rect
         rx = rect.width() / 2
         ry = rect.height() / 2
         if rx == 0 or ry == 0:
@@ -194,7 +194,7 @@ class TriangleShape(PolygonShape):
     DEFAULT_HEIGHT = 90.0
 
     def _polygon(self) -> QPolygonF:
-        rect = self.rect()
+        rect = self._rect
         return QPolygonF(
             [
                 QPointF(rect.center().x(), rect.top()),
@@ -209,7 +209,7 @@ class RhombusShape(PolygonShape):
     DEFAULT_HEIGHT = 90.0
 
     def _polygon(self) -> QPolygonF:
-        rect = self.rect()
+        rect = self._rect
         return QPolygonF(
             [
                 QPointF(rect.center().x(), rect.top()),
