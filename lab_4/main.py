@@ -111,9 +111,6 @@ class Shape(ABC):
         max_width = 2 * min(center.x() - bounds.left(), bounds.right() - center.x())
         max_height = 2 * min(center.y() - bounds.top(), bounds.bottom() - center.y())
 
-        if width <= 0 or height <= 0:
-            return self.MIN_SIZE, self.MIN_SIZE
-
         scale = min(1.0, max_width / width, max_height / height)
         return width * scale, height * scale
 
@@ -559,8 +556,7 @@ class MainWindow(QMainWindow):
 
     def _change_shape(self) -> None:
         shape_type = self._shape_combo.currentData()
-        if shape_type is not None:
-            self._paint_area.set_shape_type(shape_type)
+        self._paint_area.set_shape_type(shape_type)
 
     def _choose_color(self) -> None:
         if not self._paint_area.has_selection():
