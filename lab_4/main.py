@@ -89,9 +89,6 @@ class Shape(ABC):
     def is_selected(self) -> bool:
         return self._selected
 
-    def set_color(self, color: QColor) -> None:
-        self._color = color
-
     @property
     def color(self):
         return self._color
@@ -99,9 +96,6 @@ class Shape(ABC):
     @color.setter
     def color(self, color: QColor):
         self._color = color
-
-    # def color(self) -> QColor:
-    #     return QColor(self._color)
 
     def _normalize_size(self, width: float, height: float) -> tuple[float, float]:
         return width, height
@@ -291,13 +285,11 @@ class ShapeStorage:
     def selected_count(self) -> int:
         return len(self.selected_shapes())
 
-    def move_selected(self, dx: float, dy: float, bounds: QRectF) -> None:
+    def move_selected(self, allowed_dx: float, allowed_dy: float, bounds: QRectF) -> None:
         selected = self.selected_shapes()
         if not selected:
             return
 
-        allowed_dx = dx
-        allowed_dy = dy
         for shape in selected:
             rect = shape.rect()
             allowed_dx = min(allowed_dx, bounds.right() - rect.right())
@@ -314,7 +306,7 @@ class ShapeStorage:
 
     def recolor_selected(self, color: QColor) -> None:
         for shape in self.selected_shapes():
-            shape.set_color(color)
+            shape.color = color
 
     def ensure_inside(self, bounds: QRectF) -> None:
         for shape in self._shapes:
