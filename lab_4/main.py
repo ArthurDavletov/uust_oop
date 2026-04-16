@@ -73,7 +73,7 @@ class Shape(ABC):
         self._rect = self._fit_into(bounds, self._rect)
 
     def rect(self) -> QRectF:
-        return QRectF(self._rect)
+        return self._rect
 
     def selection_rect(self) -> QRectF:
         return self._rect.adjusted(
