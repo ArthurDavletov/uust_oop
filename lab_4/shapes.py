@@ -5,7 +5,7 @@ from PySide6.QtGui import QColor, QPainter, QPen, QPainterPath, QPolygonF
 
 __all__ = (
     "Shape", "RectangleShape", "SquareShape", "EllipseShape",
-    "CircleShape", "PolygonShape", "TriangleShape", "RhombusShape", "LineShape"
+    "CircleShape", "TriangleShape", "RhombusShape", "LineShape"
 )
 
 
