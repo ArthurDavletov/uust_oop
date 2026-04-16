@@ -74,7 +74,7 @@ class Shape(ABC):
         self._rect = self._fit_into(bounds, self._rect)
 
     def rect(self) -> QRectF:
-        return self._rect
+        return QRectF(self._rect)
 
     def selection_rect(self) -> QRectF:
         return self._rect.adjusted(
@@ -92,11 +92,11 @@ class Shape(ABC):
 
     @property
     def color(self):
-        return self._color
+        return QColor(self._color)
 
     @color.setter
     def color(self, color: QColor):
-        self._color = color
+        self._color = QColor(color)
 
     def _normalize_size(self, width: float, height: float) -> tuple[float, float]:
         return width, height
