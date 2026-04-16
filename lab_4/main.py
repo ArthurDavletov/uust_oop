@@ -476,20 +476,20 @@ class PaintArea(QWidget):
 
 
 class MainWindow(QMainWindow):
-    SHAPES = [
-        ("circle", "Круг"),
-        ("square", "Квадрат"),
-        ("ellipse", "Эллипс"),
-        ("rectangle", "Прямоугольник"),
-        ("triangle", "Треугольник"),
-        ("line", "Отрезок"),
-        ("rhombus", "Ромб"),
-    ]
+    SHAPES = {
+        "circle": "Круг",
+        "square": "Квадрат",
+        "ellipse": "Эллипс",
+        "rectangle": "Прямоугольник",
+        "triangle": "Треугольник",
+        "line": "Отрезок",
+        "rhombus": "Ромб"
+    }
 
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Лабораторная работа 4. Визуальный редактор")
-        self.setMinimumSize(900, 620)
+        self.setMinimumSize(700, 420)
 
         self._storage = ShapeStorage()
         self._paint_area = PaintArea(self._storage, self)
@@ -515,7 +515,7 @@ class MainWindow(QMainWindow):
         top_layout.setContentsMargins(0, 0, 0, 0)
         top_layout.addWidget(QLabel("Фигура:", self))
 
-        for shape_type, title in self.SHAPES:
+        for shape_type, title in self.SHAPES.items():
             self._shape_combo.addItem(title, shape_type)
         self._shape_combo.currentIndexChanged.connect(self._change_shape)
 
@@ -525,7 +525,7 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(central_widget)
         self._create_actions()
-        self._create_menus()
+        self._create_menu()
         self._create_toolbar()
         self._change_shape()
         self._paint_area.setFocus()
@@ -551,7 +551,7 @@ class MainWindow(QMainWindow):
         self._exit_action.setShortcut("Alt+F4")
         self._exit_action.triggered.connect(self.close)
 
-    def _create_menus(self) -> None:
+    def _create_menu(self) -> None:
         file_menu = self.menuBar().addMenu("Файл")
         file_menu.addAction(self._exit_action)
 
