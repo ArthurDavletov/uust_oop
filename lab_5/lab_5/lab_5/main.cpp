@@ -1,5 +1,10 @@
 ﻿#include <iostream>
+#include <windows.h>
 
 int main() {
-    std::cout << "Hello World!\n";
+  // Исправление русского языка в консоли Windows
+  SetConsoleCP(CP_UTF8);
+  SetConsoleOutputCP(CP_UTF8);
+  std::cout << "Привет, мир!" << std::endl;
+  return 0;
 }
