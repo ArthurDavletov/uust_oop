@@ -129,11 +129,11 @@ public:
   }
 
   void info() const {
-    std::cout << "[DEBUG] Circle::info (одноименный, но невиртуальный метод потомка)\n";
+    std::cout << "[DEBUG] Circle::info (невиртуальный метод потомка)\n";
   }
 
   void method2NonVirtual() const {
-    std::cout << "[DEBUG] Circle::method2NonVirtual (это сокрытие, а не виртуальность)\n";
+    std::cout << "[DEBUG] Circle::method2NonVirtual (сокрытие, а не виртуальность)\n";
   }
 
   void method2Virtual() const override {
@@ -250,13 +250,8 @@ public:
   }
 
   Base(Base* obj) : id_(NextId()) {
-    std::cout << "[DEBUG] Base(Base*) -> #" << id_ << ", source = ";
-    if (obj != nullptr) {
-      std::cout << '#' << obj->Id();
-    } else {
-      std::cout << "null";
-    }
-    std::cout << '\n';
+    std::cout << "[DEBUG] Base(Base*) -> #" << id_
+              << ", source = #" << obj->Id() << '\n';
   }
 
   Base(Base& obj) : id_(NextId()) {
@@ -294,13 +289,8 @@ public:
   }
 
   Desc(Desc* obj) : Base(obj) {
-    std::cout << "[DEBUG] Desc(Desc*) for object #" << Id() << ", source = ";
-    if (obj != nullptr) {
-      std::cout << '#' << obj->Id();
-    } else {
-      std::cout << "null";
-    }
-    std::cout << '\n';
+    std::cout << "[DEBUG] Desc(Desc*) for object #" << Id()
+              << ", source = #" << obj->Id() << '\n';
   }
 
   Desc(Desc& obj) : Base(obj) {
