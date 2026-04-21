@@ -1,36 +1,65 @@
 import math
 from abc import ABC, abstractmethod
-from PySide6.QtCore import QLineF, QRectF, QPointF, Qt
-from PySide6.QtGui import QColor, QPainter, QPen, QPainterPath, QPolygonF
+from typing import Any, Iterable
+
+from PySide6.QtCore import QLineF, QPointF, QRectF, Qt
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QPolygonF
 
 __all__ = (
-    "Shape", "RectangleShape", "SquareShape", "EllipseShape",
-    "CircleShape", "TriangleShape", "RhombusShape", "LineShape"
+    "Shape",
+    "RectangleShape",
+    "SquareShape",
+    "EllipseShape",
+    "CircleShape",
+    "TriangleShape",
+    "RhombusShape",
+    "LineShape",
+    "GroupShape",
+    "ShapeFactory",
 )
 
 
+def _rect_to_list(rect: QRectF) -> list[float]:
+    return [
+        round(rect.left(), 3),
+        round(rect.top(), 3),
+        round(rect.width(), 3),
+        round(rect.height(), 3),
+    ]
+
+
+def _rect_from_list(values: list[int | float]) -> QRectF:
+    if len(values) != 4:
+        raise ValueError("Прямоугольник должен содержать 4 числа: x, y, width, height")
+    return QRectF(float(values[0]), float(values[1]), float(values[2]), float(values[3]))
+
+
 class Shape(ABC):
+    TYPE_NAME = "shape"
     DEFAULT_WIDTH = 90.0
     DEFAULT_HEIGHT = 70.0
     MIN_SIZE = 24.0
     SELECTION_MARGIN = 4.0
 
-    def __init__(self, rect: QRectF) -> None:
-        self._rect = QRectF(rect)
+    def __init__(self, rect: QRectF | None = None) -> None:
+        self._rect = QRectF(rect) if rect is not None else QRectF(0, 0, self.DEFAULT_WIDTH, self.DEFAULT_HEIGHT)
         self._color = QColor("#7070ff")
         self._selected = False
 
     @classmethod
     def create_at(cls, center: QPointF, bounds: QRectF) -> "Shape":
-        rect = QRectF(
-            center.x() - cls.DEFAULT_WIDTH / 2,
-            center.y() - cls.DEFAULT_HEIGHT / 2,
-            cls.DEFAULT_WIDTH,
-            cls.DEFAULT_HEIGHT,
-        )
-        shape = cls(rect)
-        shape.ensure_inside(bounds)
+        shape = cls()
+        shape.place_at(center, bounds)
         return shape
+
+    @classmethod
+    def type_name(cls) -> str:
+        return cls.TYPE_NAME
+
+    def place_at(self, center: QPointF, bounds: QRectF) -> None:
+        width, height = self._normalize_size(self.DEFAULT_WIDTH, self.DEFAULT_HEIGHT)
+        rect = QRectF(center.x() - width / 2, center.y() - height / 2, width, height)
+        self._rect = self._fit_into(bounds, rect)
 
     def draw(self, painter: QPainter) -> None:
         self._draw_shape(painter)
@@ -70,6 +99,17 @@ class Shape(ABC):
         rect = QRectF(center.x() - width / 2, center.y() - height / 2, width, height)
         self._rect = self._fit_into(bounds, rect)
 
+    def scale_from(self, origin: QPointF, scale: float, bounds: QRectF) -> None:
+        rect = QRectF(
+            origin.x() + (self._rect.left() - origin.x()) * scale,
+            origin.y() + (self._rect.top() - origin.y()) * scale,
+            self._rect.width() * scale,
+            self._rect.height() * scale,
+        )
+        width, height = self._normalize_size(max(rect.width(), self.MIN_SIZE), max(rect.height(), self.MIN_SIZE))
+        rect = QRectF(rect.left(), rect.top(), width, height)
+        self._rect = self._fit_into(bounds, rect)
+
     def ensure_inside(self, bounds: QRectF) -> None:
         self._rect = self._fit_into(bounds, self._rect)
 
@@ -90,12 +130,38 @@ class Shape(ABC):
     def is_selected(self) -> bool:
         return self._selected
 
+    def can_ungroup(self) -> bool:
+        return False
+
+    def take_children(self) -> list["Shape"]:
+        return []
+
+    def save(self) -> dict[str, Any]:
+        return {
+            "type": self.type_name(),
+            "rect": _rect_to_list(self._rect),
+            "color": self.color.name(),
+        }
+
+    def load(self, data: dict[str, Any], factory: "ShapeFactory") -> None:
+        rect_data = data.get("rect")
+        if not isinstance(rect_data, list):
+            raise ValueError(f"У объекта {self.type_name()} отсутствует поле rect")
+
+        color = QColor(str(data.get("color", "#7070ff")))
+        if not color.isValid():
+            raise ValueError(f"Некорректный цвет у объекта {self.type_name()}")
+
+        self._rect = _rect_from_list(rect_data)
+        self._color = color
+        self._selected = False
+
     @property
-    def color(self):
+    def color(self) -> QColor:
         return QColor(self._color)
 
     @color.setter
-    def color(self, color: QColor):
+    def color(self, color: QColor) -> None:
         self._color = QColor(color)
 
     def _normalize_size(self, width: float, height: float) -> tuple[float, float]:
@@ -117,6 +183,7 @@ class Shape(ABC):
 
 
 class RectangleShape(Shape):
+    TYPE_NAME = "rectangle"
     DEFAULT_WIDTH = 110.0
     DEFAULT_HEIGHT = 70.0
 
@@ -132,6 +199,7 @@ class RectangleShape(Shape):
 
 
 class SquareShape(RectangleShape):
+    TYPE_NAME = "square"
     DEFAULT_WIDTH = 80.0
     DEFAULT_HEIGHT = 80.0
 
@@ -141,6 +209,7 @@ class SquareShape(RectangleShape):
 
 
 class EllipseShape(Shape):
+    TYPE_NAME = "ellipse"
     DEFAULT_WIDTH = 120.0
     DEFAULT_HEIGHT = 75.0
 
@@ -164,6 +233,7 @@ class EllipseShape(Shape):
 
 
 class CircleShape(EllipseShape):
+    TYPE_NAME = "circle"
     DEFAULT_WIDTH = 80.0
     DEFAULT_HEIGHT = 80.0
 
@@ -191,6 +261,7 @@ class PolygonShape(Shape, ABC):
 
 
 class TriangleShape(PolygonShape):
+    TYPE_NAME = "triangle"
     DEFAULT_WIDTH = 100.0
     DEFAULT_HEIGHT = 90.0
 
@@ -206,6 +277,7 @@ class TriangleShape(PolygonShape):
 
 
 class RhombusShape(PolygonShape):
+    TYPE_NAME = "rhombus"
     DEFAULT_WIDTH = 110.0
     DEFAULT_HEIGHT = 90.0
 
@@ -222,6 +294,7 @@ class RhombusShape(PolygonShape):
 
 
 class LineShape(Shape):
+    TYPE_NAME = "line"
     DEFAULT_WIDTH = 110.0
     DEFAULT_HEIGHT = 70.0
     MIN_SIZE = 20.0
@@ -251,3 +324,185 @@ class LineShape(Shape):
         x = line.x1() + factor * dx
         y = line.y1() + factor * dy
         return math.hypot(point.x() - x, point.y() - y)
+
+
+class GroupShape(Shape):
+    TYPE_NAME = "group"
+    SELECTION_MARGIN = 6.0
+
+    def __init__(self, children: Iterable[Shape] | None = None) -> None:
+        super().__init__(QRectF())
+        self._children: list[Shape] = list(children or [])
+        for child in self._children:
+            child.set_selected(False)
+        self._refresh_rect()
+
+    def _draw_shape(self, painter: QPainter) -> None:
+        for child in self._children:
+            child.draw(painter)
+
+    def contains_point(self, point: QPointF) -> bool:
+        return self.selection_rect().contains(point)
+
+    @property
+    def color(self) -> QColor:
+        return QColor("#000000")
+
+    @color.setter
+    def color(self, color: QColor) -> None:
+        for child in self._children:
+            child.color = color
+
+    def move_by(self, dx: float, dy: float, bounds: QRectF) -> None:
+        if not self._children:
+            return
+
+        current = self.rect()
+        fitted = self._fit_into(bounds, current.translated(dx, dy))
+        actual_dx = fitted.left() - current.left()
+        actual_dy = fitted.top() - current.top()
+
+        for child in self._children:
+            child.move_by(actual_dx, actual_dy, bounds)
+        self._refresh_rect()
+
+    def resize_by(self, delta: float, bounds: QRectF) -> None:
+        if not self._children:
+            return
+
+        current = self.rect()
+        max_side = max(current.width(), current.height())
+        if max_side <= 0:
+            return
+
+        scale = max((max_side + delta) / max_side, self._minimal_scale())
+        scale = self._limit_scale(scale, current, bounds)
+
+        origin = current.center()
+        for child in self._children:
+            child.scale_from(origin, scale, bounds)
+        self._refresh_rect()
+        self.ensure_inside(bounds)
+
+    def scale_from(self, origin: QPointF, scale: float, bounds: QRectF) -> None:
+        for child in self._children:
+            child.scale_from(origin, scale, bounds)
+        self._refresh_rect()
+
+    def ensure_inside(self, bounds: QRectF) -> None:
+        if not self._children:
+            return
+
+        current = self.rect()
+        if current.width() > bounds.width() or current.height() > bounds.height():
+            scale = min(bounds.width() / current.width(), bounds.height() / current.height())
+            for child in self._children:
+                child.scale_from(current.center(), scale, bounds)
+            self._refresh_rect()
+
+        current = self.rect()
+        fitted = self._fit_into(bounds, current)
+        self.move_by(fitted.left() - current.left(), fitted.top() - current.top(), bounds)
+
+    def can_ungroup(self) -> bool:
+        return bool(self._children)
+
+    def take_children(self) -> list[Shape]:
+        children = self._children
+        self._children = []
+        for child in children:
+            child.set_selected(True)
+        self._refresh_rect()
+        return children
+
+    def save(self) -> dict[str, Any]:
+        return {
+            "type": self.type_name(),
+            "rect": _rect_to_list(self.rect()),
+            "children": [child.save() for child in self._children],
+        }
+
+    def load(self, data: dict[str, Any], factory: "ShapeFactory") -> None:
+        children_data = data.get("children")
+        if not isinstance(children_data, list):
+            raise ValueError("У группы отсутствует список children")
+
+        self._children = []
+        for child_data in children_data:
+            if not isinstance(child_data, dict):
+                raise ValueError("Описание дочернего объекта группы должно быть словарем")
+            child_type = str(child_data.get("type", ""))
+            child = factory.create(child_type)
+            child.load(child_data, factory)
+            child.set_selected(False)
+            self._children.append(child)
+
+        self._selected = False
+        self._refresh_rect()
+
+    def _refresh_rect(self) -> None:
+        if not self._children:
+            self._rect = QRectF()
+            return
+
+        rect = self._children[0].rect()
+        for child in self._children[1:]:
+            rect = rect.united(child.rect())
+        self._rect = rect
+
+    def _minimal_scale(self) -> float:
+        scale = 0.01
+        for child in self._children:
+            rect = child.rect()
+            if rect.width() > 0:
+                scale = max(scale, child.MIN_SIZE / rect.width())
+            if rect.height() > 0:
+                scale = max(scale, child.MIN_SIZE / rect.height())
+        return scale
+
+    @staticmethod
+    def _limit_scale(scale: float, rect: QRectF, bounds: QRectF) -> float:
+        if scale <= 1.0:
+            return scale
+
+        center = rect.center()
+        max_width = 2 * min(center.x() - bounds.left(), bounds.right() - center.x())
+        max_height = 2 * min(center.y() - bounds.top(), bounds.bottom() - center.y())
+        if rect.width() <= 0 or rect.height() <= 0:
+            return scale
+        return min(scale, max_width / rect.width(), max_height / rect.height())
+
+
+class ShapeFactory:
+    def __init__(self) -> None:
+        self._classes: dict[str, type[Shape]] = {}
+
+    def register(self, shape_class: type[Shape]) -> None:
+        self._classes[shape_class.type_name()] = shape_class
+
+    def create(self, shape_type: str) -> Shape:
+        shape_class = self._classes.get(shape_type)
+        if shape_class is None:
+            raise ValueError(f"Неизвестный тип объекта: {shape_type}")
+        return shape_class()
+
+    def create_at(self, shape_type: str, center: QPointF, bounds: QRectF) -> Shape:
+        shape = self.create(shape_type)
+        shape.place_at(center, bounds)
+        return shape
+
+    @classmethod
+    def default(cls) -> "ShapeFactory":
+        factory = cls()
+        for shape_class in (
+            CircleShape,
+            SquareShape,
+            EllipseShape,
+            RectangleShape,
+            TriangleShape,
+            LineShape,
+            RhombusShape,
+            GroupShape,
+        ):
+            factory.register(shape_class)
+        return factory
