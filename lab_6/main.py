@@ -46,13 +46,16 @@ class MainWindow(QMainWindow):
         self._delete_action: QAction | None = None
         self._clear_action: QAction | None = None
         self._select_all_action: QAction | None = None
+        self._undo_action: QAction | None = None
         self._group_action: QAction | None = None
         self._ungroup_action: QAction | None = None
         self._exit_action: QAction | None = None
 
         self._init_ui()
         self._paint_area.selectionChanged.connect(self._update_selection_actions)
+        self._paint_area.undoAvailabilityChanged.connect(self._update_undo_action)
         self._update_selection_actions(False)
+        self._update_undo_action(False)
 
     def _init_ui(self) -> None:
         central_widget = QWidget(self)
@@ -87,6 +90,10 @@ class MainWindow(QMainWindow):
         self._save_action = QAction("Сохранить...", self)
         self._save_action.setShortcut("Ctrl+S")
         self._save_action.triggered.connect(self._save_project)
+
+        self._undo_action = QAction("Отменить", self)
+        self._undo_action.setShortcut("Ctrl+Z")
+        self._undo_action.triggered.connect(self._paint_area.undo)
 
         self._color_action = QAction("Цвет...", self)
         self._color_action.setShortcut("Ctrl+L")
@@ -123,10 +130,24 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction(self._exit_action)
 
+        edit_menu = self.menuBar().addMenu("Правка")
+        edit_menu.addAction(self._undo_action)
+        edit_menu.addSeparator()
+        edit_menu.addAction(self._select_all_action)
+        edit_menu.addAction(self._clear_action)
+        edit_menu.addSeparator()
+        edit_menu.addAction(self._group_action)
+        edit_menu.addAction(self._ungroup_action)
+        edit_menu.addSeparator()
+        edit_menu.addAction(self._color_action)
+        edit_menu.addAction(self._delete_action)
+
     def _create_toolbar(self) -> None:
         toolbar = QToolBar("Редактирование", self)
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
+        toolbar.addAction(self._undo_action)
+        toolbar.addSeparator()
         toolbar.addAction(self._select_all_action)
         toolbar.addAction(self._clear_action)
         toolbar.addSeparator()
@@ -141,18 +162,19 @@ class MainWindow(QMainWindow):
         self._paint_area.set_shape_type(shape_type)
 
     def _save_project(self) -> None:
-        file_path, _ = QFileDialog.getSaveFileName(
+        file_path, selected_filter = QFileDialog.getSaveFileName(
             self,
             "Сохранить проект",
             "",
-            "JSON (*.json);;Текстовый проект (*.txt);;Все файлы (*)",
+            "Текстовый проект (*.txt);;JSON (*.json);;Все файлы (*)",
         )
         if not file_path:
             return
 
         path = Path(file_path)
         if not path.suffix:
-            path = path.with_suffix(".json")
+            suffix = ".json" if selected_filter.startswith("JSON") else ".txt"
+            path = path.with_suffix(suffix)
 
         try:
             self._paint_area.save_to_file(str(path))
@@ -164,7 +186,7 @@ class MainWindow(QMainWindow):
             self,
             "Загрузить проект",
             "",
-            "JSON (*.json);;Текстовый проект (*.txt);;Все файлы (*)",
+            "Текстовый проект (*.txt);;JSON (*.json);;Все файлы (*)",
         )
         if not file_path:
             return
@@ -187,6 +209,9 @@ class MainWindow(QMainWindow):
         self._delete_action.setEnabled(has_selection)
         self._group_action.setEnabled(self._paint_area.can_group_selection())
         self._ungroup_action.setEnabled(self._paint_area.can_ungroup_selection())
+
+    def _update_undo_action(self, can_undo: bool) -> None:
+        self._undo_action.setEnabled(can_undo)
 
 
 if __name__ == "__main__":

@@ -19,7 +19,15 @@ __all__ = (
 )
 
 
-def _rect_to_list(rect: QRectF) -> list[float]:
+def _format_number(value: float) -> str:
+    return f"{value:.3f}".rstrip("0").rstrip(".")
+
+
+def _format_rect(rect: QRectF) -> str:
+    return " ".join(_format_number(value) for value in (rect.left(), rect.top(), rect.width(), rect.height()))
+
+
+def _rect_to_data(rect: QRectF) -> list[float]:
     return [
         round(rect.left(), 3),
         round(rect.top(), 3),
@@ -28,7 +36,7 @@ def _rect_to_list(rect: QRectF) -> list[float]:
     ]
 
 
-def _rect_from_list(values: list[int | float]) -> QRectF:
+def _rect_from_list(values: list[int | float | str]) -> QRectF:
     if len(values) != 4:
         raise ValueError("Прямоугольник должен содержать 4 числа: x, y, width, height")
     return QRectF(float(values[0]), float(values[1]), float(values[2]), float(values[3]))
@@ -136,10 +144,19 @@ class Shape(ABC):
     def take_children(self) -> list["Shape"]:
         return []
 
-    def save(self) -> dict[str, Any]:
+    def save(self, indent: int = 0) -> list[str]:
+        prefix = "  " * indent
+        return [
+            f"{prefix}object {self.type_name()}",
+            f"{prefix}  rect {_format_rect(self._rect)}",
+            f"{prefix}  color {self.color.name()}",
+            f"{prefix}end",
+        ]
+
+    def to_data(self) -> dict[str, Any]:
         return {
             "type": self.type_name(),
-            "rect": _rect_to_list(self._rect),
+            "rect": _rect_to_data(self.rect()),
             "color": self.color.name(),
         }
 
@@ -415,17 +432,34 @@ class GroupShape(Shape):
         self._refresh_rect()
         return children
 
-    def save(self) -> dict[str, Any]:
+    def save(self, indent: int = 0) -> list[str]:
+        prefix = "  " * indent
+        lines = [
+            f"{prefix}object {self.type_name()}",
+            f"{prefix}  bounds {_format_rect(self.rect())}",
+            f"{prefix}  children_count {len(self._children)}",
+        ]
+        for child in self._children:
+            lines.extend(child.save(indent + 1))
+        lines.append(f"{prefix}end")
+        return lines
+
+    def to_data(self) -> dict[str, Any]:
         return {
             "type": self.type_name(),
-            "rect": _rect_to_list(self.rect()),
-            "children": [child.save() for child in self._children],
+            "bounds": _rect_to_data(self.rect()),
+            "children_count": len(self._children),
+            "children": [child.to_data() for child in self._children],
         }
 
     def load(self, data: dict[str, Any], factory: "ShapeFactory") -> None:
-        children_data = data.get("children")
+        children_data = data.get("children", [])
         if not isinstance(children_data, list):
             raise ValueError("У группы отсутствует список children")
+
+        declared_count = data.get("children_count")
+        if declared_count is not None and int(declared_count) != len(children_data):
+            raise ValueError("Количество дочерних объектов группы не совпадает с children_count")
 
         self._children = []
         for child_data in children_data:
