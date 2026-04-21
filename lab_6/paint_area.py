@@ -3,7 +3,7 @@ from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent, QPaintEvent, QPainter,
 from PySide6.QtWidgets import QWidget
 
 from shape_storage import ShapeStorage
-from shapes import *
+from shapes import Shape, ShapeFactory
 
 
 class PaintArea(QWidget):
@@ -13,19 +13,10 @@ class PaintArea(QWidget):
     SCALE_STEP = 10
     WORKSPACE_MARGIN = 12.0
 
-    SHAPE_CLASSES = {
-        "circle": CircleShape,
-        "square": SquareShape,
-        "ellipse": EllipseShape,
-        "rectangle": RectangleShape,
-        "triangle": TriangleShape,
-        "line": LineShape,
-        "rhombus": RhombusShape,
-    }
-
     def __init__(self, storage: ShapeStorage, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._storage = storage
+        self._shape_factory = ShapeFactory.default()
         self._current_shape = "circle"
         self.setFocusPolicy(Qt.StrongFocus)
         self.setMinimumSize(640, 420)
@@ -36,6 +27,12 @@ class PaintArea(QWidget):
 
     def has_selection(self) -> bool:
         return self._storage.selected_count() > 0
+
+    def can_group_selection(self) -> bool:
+        return self._storage.selected_count() >= 2
+
+    def can_ungroup_selection(self) -> bool:
+        return self._storage.has_selected_group()
 
     def delete_selected(self) -> None:
         self._storage.remove_selected()
@@ -49,8 +46,24 @@ class PaintArea(QWidget):
         self._storage.select_all()
         self._finish_change()
 
+    def group_selected(self) -> None:
+        if self._storage.group_selected():
+            self._finish_change()
+
+    def ungroup_selected(self) -> None:
+        if self._storage.ungroup_selected():
+            self._finish_change()
+
     def recolor_selected(self, color: QColor) -> None:
         self._storage.recolor_selected(color)
+        self._finish_change()
+
+    def save_to_file(self, file_path: str) -> None:
+        self._storage.save_to_file(file_path)
+
+    def load_from_file(self, file_path: str) -> None:
+        self._storage.load_from_file(file_path, self._shape_factory)
+        self._storage.ensure_inside(self._workspace_rect())
         self._finish_change()
 
     def paintEvent(self, event: QPaintEvent) -> None:
@@ -95,6 +108,12 @@ class PaintArea(QWidget):
             case Qt.Key_A if event.modifiers() & Qt.ControlModifier:
                 self.select_all()
                 event.accept()
+            case Qt.Key_G if event.modifiers() & Qt.ControlModifier:
+                self.group_selected()
+                event.accept()
+            case Qt.Key_U if event.modifiers() & Qt.ControlModifier:
+                self.ungroup_selected()
+                event.accept()
             case Qt.Key_Delete:
                 self.delete_selected()
                 event.accept()
@@ -134,8 +153,7 @@ class PaintArea(QWidget):
         self._finish_change()
 
     def _create_shape(self, point: QPointF, ctrl_pressed: bool) -> None:
-        shape_class = self.SHAPE_CLASSES[self._current_shape]
-        shape = shape_class.create_at(point, self._workspace_rect())
+        shape = self._shape_factory.create_at(self._current_shape, point, self._workspace_rect())
         if not ctrl_pressed:
             self._storage.clear_selection()
         shape.set_selected(True)
