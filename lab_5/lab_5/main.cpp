@@ -374,10 +374,8 @@ void VirtualityDemo() {
   std::cout << "clone() вернул объект типа " << cloned->classname() << '\n';
 
   Shape* poly = new Circle(42.0);
-  // Удаляем Circle через Shape*
+  // Удаляем Circle через Shape* благодаря virtual деструктору.
   delete poly;
-  // Благодаря virtual деструктору вызвались деструкторы потомка и базовых частей.
-  // Если бы деструктор Shape не был virtual, такое удаление было бы ошибкой и привело бы к undefined behavior.
 }
 
 
@@ -528,25 +526,25 @@ void ParameterPassingDemo() {
 }
 
 
-// func1/func2/func3 работают со static-объектами.
+// func1/func2/func3 работают со локальными объектами.
 Base func1() {
   PrintCase("func1()");
-  static Base obj;
-  std::cout << "Возвращаем копию static Base #" << obj.Id() << '\n';
+  Base obj;
+  std::cout << "Возвращаем копию Base #" << obj.Id() << '\n';
   return obj;
 }
 
 Base* func2() {
   PrintCase("func2()");
-  static Base obj;
-  std::cout << "Возвращаем указатель на static Base #" << obj.Id() << '\n';
+  Base obj;
+  std::cout << "Возвращаем указатель на Base #" << obj.Id() << '\n';
   return &obj;
 }
 
 Base& func3() {
   PrintCase("func3()");
-  static Base obj;
-  std::cout << "Возвращаем ссылку на static Base #" << obj.Id() << '\n';
+  Base obj;
+  std::cout << "Возвращаем ссылку на Base #" << obj.Id() << '\n';
   return obj;
 }
 
@@ -593,14 +591,17 @@ Base& func6() {
 void ReturnDemo() {
   PrintTitle("Возврат объектов из функций");
 
-  Base value_from_static = func1();
-  std::cout << "В локальную переменную получена копия #" << value_from_static.Id() << '\n';
+  Base value_from_local = func1();
+  std::cout << "В локальную переменную получена копия #"
+            << value_from_local.Id() << '\n';
 
-  Base* ptr_from_static = func2();
-  std::cout << "Получен указатель на static объект #" << ptr_from_static->Id() << '\n';
+  Base* ptr_from_local = func2();
+  std::cout << "Получен указатель на local объект #" << ptr_from_local->Id()
+            << '\n';
 
-  Base& ref_from_static = func3();
-  std::cout << "Получена ссылка на static объект #" << ref_from_static.Id() << '\n';
+  Base& ref_from_local = func3();
+  std::cout << "Получена ссылка на local объект #" << ref_from_local.Id()
+            << '\n';
 
   Base value_from_dynamic = func4();
   std::cout << "В локальную переменную получена копия #" << value_from_dynamic.Id()
@@ -612,12 +613,8 @@ void ReturnDemo() {
   Base& ref_from_dynamic = func6();
   std::cout << "Получен Base& на dynamic объект #" << ref_from_dynamic.Id() << '\n';
 
-  std::cout << "\nОсвобождаем только то, чем реально владеем:\n";
   delete ptr_from_dynamic;  // Если удалить эту строку, объект из func5() утечет.
   delete &ref_from_dynamic; // Если удалить эту строку, объект из func6() утечет.
-
-  // static-объекты из func2/func3 удалять нельзя: они живут до завершения программы.\n"
-  // func4 теперь тоже без утечки: внутри функции исходный dynamic-объект удаляется вручную.\n";
 }
 
 
@@ -631,13 +628,13 @@ void ReturnDemo() {
 void TakeUnique(std::unique_ptr<TrackedResource> resource) {
   PrintCase("TakeUnique(unique_ptr)");
   resource->Use();
-  std::cout << "В конце функции unique_ptr уничтожится и удалит объект, если владение больше никуда не передавалось.\n";
+  // В конце функции unique_ptr уничтожится
 }
 
 std::unique_ptr<TrackedResource> MakeUniqueResource(const std::string& name) {
   PrintCase("MakeUniqueResource()");
   auto resource = std::make_unique<TrackedResource>(name);
-  std::cout << "Возвращаем unique_ptr из фабричной функции.\n";
+  // Возвращаем unique_ptr
   return resource;
 }
 
