@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from PySide6.QtCore import QPointF, QRectF
 from PySide6.QtGui import QColor
 
-from shape_storage import ShapeFactoryProtocol, ShapeStorage
+from shape_storage import AbstractFactory, ShapeStorage
 from shapes import Shape
 
 
@@ -45,7 +45,7 @@ class CommandStack:
 
 
 class SnapshotCommand(Command):
-    def __init__(self, storage: ShapeStorage, factory: ShapeFactoryProtocol) -> None:
+    def __init__(self, storage: ShapeStorage, factory: AbstractFactory) -> None:
         self._storage = storage
         self._factory = factory
         self._before: list[dict] = []
@@ -68,7 +68,7 @@ class CommittedSnapshotCommand(Command):
     def __init__(
         self,
         storage: ShapeStorage,
-        factory: ShapeFactoryProtocol,
+        factory: AbstractFactory,
         before: list[dict],
         after: list[dict],
     ) -> None:
@@ -91,7 +91,7 @@ class CreateShapeCommand(SnapshotCommand):
     def __init__(
         self,
         storage: ShapeStorage,
-        factory: ShapeFactoryProtocol,
+        factory: AbstractFactory,
         shape_type: str,
         point: QPointF,
         bounds: QRectF,
@@ -113,7 +113,7 @@ class CreateShapeCommand(SnapshotCommand):
 
 
 class SelectOnlyShapeCommand(SnapshotCommand):
-    def __init__(self, storage: ShapeStorage, factory: ShapeFactoryProtocol, shape: Shape) -> None:
+    def __init__(self, storage: ShapeStorage, factory: AbstractFactory, shape: Shape) -> None:
         super().__init__(storage, factory)
         self._shape = shape
 
@@ -124,7 +124,7 @@ class SelectOnlyShapeCommand(SnapshotCommand):
 
 
 class ToggleShapeSelectionCommand(SnapshotCommand):
-    def __init__(self, storage: ShapeStorage, factory: ShapeFactoryProtocol, shape: Shape) -> None:
+    def __init__(self, storage: ShapeStorage, factory: AbstractFactory, shape: Shape) -> None:
         super().__init__(storage, factory)
         self._shape = shape
 
@@ -167,7 +167,7 @@ class MoveSelectedCommand(SnapshotCommand):
     def __init__(
         self,
         storage: ShapeStorage,
-        factory: ShapeFactoryProtocol,
+        factory: AbstractFactory,
         dx: float,
         dy: float,
         bounds: QRectF,
@@ -185,7 +185,7 @@ class MoveSelectedCommand(SnapshotCommand):
 
 
 class ResizeSelectedCommand(SnapshotCommand):
-    def __init__(self, storage: ShapeStorage, factory: ShapeFactoryProtocol, delta: float, bounds: QRectF) -> None:
+    def __init__(self, storage: ShapeStorage, factory: AbstractFactory, delta: float, bounds: QRectF) -> None:
         super().__init__(storage, factory)
         self._delta = delta
         self._bounds = QRectF(bounds)
@@ -198,7 +198,7 @@ class ResizeSelectedCommand(SnapshotCommand):
 
 
 class RecolorSelectedCommand(SnapshotCommand):
-    def __init__(self, storage: ShapeStorage, factory: ShapeFactoryProtocol, color: QColor) -> None:
+    def __init__(self, storage: ShapeStorage, factory: AbstractFactory, color: QColor) -> None:
         super().__init__(storage, factory)
         self._color = QColor(color)
 
@@ -213,7 +213,7 @@ class LoadProjectCommand(SnapshotCommand):
     def __init__(
         self,
         storage: ShapeStorage,
-        factory: ShapeFactoryProtocol,
+        factory: AbstractFactory,
         file_path: str,
         bounds: QRectF,
     ) -> None:

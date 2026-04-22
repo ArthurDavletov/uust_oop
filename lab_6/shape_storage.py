@@ -8,7 +8,7 @@ from PySide6.QtGui import QColor
 from shapes import GroupShape, Shape
 
 
-class ShapeFactoryProtocol(Protocol):
+class AbstractFactory(Protocol):
     def create(self, shape_type: str) -> Shape:
         pass
 
@@ -126,7 +126,7 @@ class ShapeStorage:
             snapshot_data.append(shape_data)
         return snapshot_data
 
-    def restore_snapshot(self, snapshot_data: list[dict[str, Any]], factory: ShapeFactoryProtocol) -> None:
+    def restore_snapshot(self, snapshot_data: list[dict[str, Any]], factory: AbstractFactory) -> None:
         self._load_objects(snapshot_data, factory, restore_selection=True)
 
     def save_to_file(self, file_path: str | Path) -> None:
@@ -137,7 +137,7 @@ class ShapeStorage:
 
         self._save_text(path)
 
-    def load_from_file(self, file_path: str | Path, factory: ShapeFactoryProtocol) -> None:
+    def load_from_file(self, file_path: str | Path, factory: AbstractFactory) -> None:
         path = Path(file_path)
         text = path.read_text(encoding="utf-8")
         if path.suffix.lower() == ".json" or text.lstrip().startswith("{"):
@@ -171,7 +171,7 @@ class ShapeStorage:
     def _load_objects(
         self,
         objects_data: list[dict[str, Any]],
-        factory: ShapeFactoryProtocol,
+        factory: AbstractFactory,
         restore_selection: bool = False,
     ) -> None:
         loaded_shapes: list[Shape] = []
