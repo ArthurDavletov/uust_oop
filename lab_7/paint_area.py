@@ -17,6 +17,8 @@ from commands import (
     MoveSelectedCommand,
     RecolorSelectedCommand,
     ResizeSelectedCommand,
+    SetObjectPropertyCommand,
+    SetSelectionCommand,
     SelectAllCommand,
     SelectOnlyShapeCommand,
     ToggleShapeSelectionCommand,
@@ -71,6 +73,12 @@ class PaintArea(QWidget):
     def can_undo(self) -> bool:
         return self._command_stack.can_undo()
 
+    def command_stack(self) -> CommandStack:
+        return self._command_stack
+
+    def workspace_rect(self) -> QRectF:
+        return self._workspace_rect()
+
     def is_arrow_mode_active(self) -> bool:
         return self._arrow_mode
 
@@ -105,6 +113,10 @@ class PaintArea(QWidget):
         self.cancel_arrow_creation()
         self._run_command(SelectAllCommand(self._storage, self._shape_factory))
 
+    def set_selection(self, object_ids: list[str], title: str = "Изменить выделение из дерева") -> bool:
+        self.cancel_arrow_creation()
+        return self._run_command(SetSelectionCommand(self._storage, self._shape_factory, object_ids, title))
+
     def group_selected(self) -> None:
         self.cancel_arrow_creation()
         self._run_command(GroupSelectedCommand(self._storage, self._shape_factory))
@@ -115,6 +127,20 @@ class PaintArea(QWidget):
 
     def recolor_selected(self, color: QColor) -> None:
         self._run_command(RecolorSelectedCommand(self._storage, self._shape_factory, color))
+
+    def change_object_property(self, object_id: str, property_name: str, value: object, property_label: str) -> bool:
+        self.cancel_arrow_creation()
+        return self._run_command(
+            SetObjectPropertyCommand(
+                self._storage,
+                self._shape_factory,
+                object_id,
+                property_name,
+                value,
+                self._workspace_rect(),
+                property_label,
+            )
+        )
 
     def save_to_file(self, file_path: str) -> None:
         self._storage.save_to_file(file_path)
@@ -204,6 +230,7 @@ class PaintArea(QWidget):
                     self._shape_factory,
                     self._drag_start_snapshot,
                     after,
+                    "Перетащить выделенные объекты",
                 )
             )
             self._finish_change()
@@ -276,7 +303,7 @@ class PaintArea(QWidget):
 
         if self._arrow_source is None:
             self._arrow_source = shape
-            self._storage.select_only(shape.object_id())
+            self._run_command(SelectOnlyShapeCommand(self._storage, self._shape_factory, shape))
             self.arrowModeChanged.emit(True, f"Источник: {shape.display_name()}. Выберите объект-приемник")
             return
 

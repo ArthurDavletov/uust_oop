@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QColorDialog,
     QComboBox,
+    QDockWidget,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -20,7 +21,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from command_history import CommandHistoryView
 from paint_area import PaintArea
+from property_panel import PropertiesPanel
 from shape_storage import ShapeStorage
 from storage_tree import StorageTreeView
 
@@ -45,6 +48,8 @@ class MainWindow(QMainWindow):
         self._paint_area = PaintArea(self._storage, self)
         self._tree_widget = StorageTreeView(self._storage, self)
         self._shape_combo = QComboBox(self)
+        self._properties_panel = PropertiesPanel(self._storage, self._paint_area.change_object_property, self)
+        self._command_history_view = CommandHistoryView(self._paint_area.command_stack(), self)
 
         self._open_action: QAction | None = None
         self._save_action: QAction | None = None
@@ -62,6 +67,7 @@ class MainWindow(QMainWindow):
         self._paint_area.selectionChanged.connect(self._update_selection_actions)
         self._paint_area.undoAvailabilityChanged.connect(self._update_undo_action)
         self._paint_area.arrowModeChanged.connect(self._update_arrow_mode)
+        self._tree_widget.selectionRequested.connect(self._paint_area.set_selection)
         self._update_selection_actions(False)
         self._update_undo_action(False)
         self.statusBar().showMessage("Готово")
@@ -95,6 +101,7 @@ class MainWindow(QMainWindow):
         self._create_actions()
         self._create_menu()
         self._create_toolbar()
+        self._create_docks()
         self._change_shape()
         self._paint_area.setFocus()
 
@@ -166,6 +173,19 @@ class MainWindow(QMainWindow):
         toolbar.addSeparator()
         toolbar.addAction(self._color_action)
         toolbar.addAction(self._delete_action)
+
+    def _create_docks(self) -> None:
+        properties_dock = QDockWidget("Свойства", self)
+        properties_dock.setObjectName("properties_dock")
+        properties_dock.setWidget(self._properties_panel)
+        properties_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.addDockWidget(Qt.RightDockWidgetArea, properties_dock)
+
+        history_dock = QDockWidget("История команд", self)
+        history_dock.setObjectName("history_dock")
+        history_dock.setWidget(self._command_history_view)
+        history_dock.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.TopDockWidgetArea)
+        self.addDockWidget(Qt.BottomDockWidgetArea, history_dock)
 
     def _change_shape(self) -> None:
         shape_type = self._shape_combo.currentData()

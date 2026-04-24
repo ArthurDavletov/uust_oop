@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Any, Iterable, Protocol
 
 from PySide6.QtCore import QPointF, QRectF
 from PySide6.QtGui import QColor
@@ -9,7 +11,26 @@ from shape_storage import AbstractFactory, ShapeStorage
 from shapes import ArrowLink, Shape
 
 
+@dataclass(frozen=True)
+class CommandHistoryEntry:
+    title: str
+    is_done: bool
+    is_current: bool
+
+
+class CommandStackObserver(Protocol):
+    def history_changed(self, stack: "CommandStack") -> None:
+        pass
+
+
 class Command(ABC):
+    def __init__(self, title: str) -> None:
+        self._title = title
+
+    @property
+    def title(self) -> str:
+        return self._title
+
     @abstractmethod
     def execute(self) -> bool:
         pass
@@ -21,36 +42,70 @@ class Command(ABC):
 
 class CommandStack:
     def __init__(self) -> None:
-        self._undo_stack: list[Command] = []
+        self._history: list[Command] = []
+        self._cursor = 0
+        self._observers: list[CommandStackObserver] = []
+
+    def add_observer(self, observer: CommandStackObserver) -> None:
+        if observer not in self._observers:
+            self._observers.append(observer)
+
+    def remove_observer(self, observer: CommandStackObserver) -> None:
+        if observer in self._observers:
+            self._observers.remove(observer)
 
     def execute(self, command: Command) -> bool:
         if not command.execute():
             return False
-        self._undo_stack.append(command)
+
+        if self._cursor < len(self._history):
+            self._history = self._history[: self._cursor]
+
+        self._history.append(command)
+        self._cursor += 1
+        self._notify()
         return True
 
     def push_committed(self, command: Command) -> bool:
-        if not command.execute():
-            return False
-        self._undo_stack.append(command)
-        return True
+        return self.execute(command)
 
     def undo(self) -> bool:
-        if not self._undo_stack:
+        if self._cursor == 0:
             return False
-        command = self._undo_stack.pop()
+
+        command = self._history[self._cursor - 1]
         command.undo()
+        self._cursor -= 1
+        self._notify()
         return True
 
     def can_undo(self) -> bool:
-        return bool(self._undo_stack)
+        return self._cursor > 0
+
+    def history_entries(self) -> list[CommandHistoryEntry]:
+        entries: list[CommandHistoryEntry] = []
+        for index, command in enumerate(self._history):
+            is_done = index < self._cursor
+            entries.append(
+                CommandHistoryEntry(
+                    title=command.title,
+                    is_done=is_done,
+                    is_current=is_done and index == self._cursor - 1,
+                )
+            )
+        return entries
+
+    def _notify(self) -> None:
+        for observer in list(self._observers):
+            observer.history_changed(self)
 
 
 class SnapshotCommand(Command):
-    def __init__(self, storage: ShapeStorage, factory: AbstractFactory) -> None:
+    def __init__(self, storage: ShapeStorage, factory: AbstractFactory, title: str) -> None:
+        super().__init__(title)
         self._storage = storage
         self._factory = factory
-        self._before: list[dict] = []
+        self._before: list[dict[str, Any]] = []
 
     def execute(self) -> bool:
         self._before = self._storage.snapshot()
@@ -71,9 +126,11 @@ class CommittedSnapshotCommand(Command):
         self,
         storage: ShapeStorage,
         factory: AbstractFactory,
-        before: list[dict],
-        after: list[dict],
+        before: list[dict[str, Any]],
+        after: list[dict[str, Any]],
+        title: str,
     ) -> None:
+        super().__init__(title)
         self._storage = storage
         self._factory = factory
         self._before = before
@@ -99,7 +156,7 @@ class CreateShapeCommand(SnapshotCommand):
         bounds: QRectF,
         keep_selection: bool,
     ) -> None:
-        super().__init__(storage, factory)
+        super().__init__(storage, factory, f"Создать объект: {shape_type}")
         self._shape_type = shape_type
         self._point = QPointF(point)
         self._bounds = QRectF(bounds)
@@ -112,7 +169,7 @@ class CreateShapeCommand(SnapshotCommand):
 
 class CreateArrowCommand(SnapshotCommand):
     def __init__(self, storage: ShapeStorage, factory: AbstractFactory, source: Shape, target: Shape) -> None:
-        super().__init__(storage, factory)
+        super().__init__(storage, factory, "Создать стрелку")
         self._source = source
         self._target = target
 
@@ -125,18 +182,29 @@ class CreateArrowCommand(SnapshotCommand):
         return self._storage.add(arrow, clear_selection=True, select_new=True)
 
 
-class SelectOnlyShapeCommand(SnapshotCommand):
-    def __init__(self, storage: ShapeStorage, factory: AbstractFactory, shape: Shape) -> None:
-        super().__init__(storage, factory)
-        self._shape = shape
+class SetSelectionCommand(SnapshotCommand):
+    def __init__(
+        self,
+        storage: ShapeStorage,
+        factory: AbstractFactory,
+        object_ids: Iterable[str],
+        title: str = "Изменить выделение",
+    ) -> None:
+        super().__init__(storage, factory, title)
+        self._object_ids = list(object_ids)
 
     def _apply(self) -> bool:
-        return self._storage.select_only(self._shape.object_id())
+        return self._storage.set_selection(self._object_ids)
+
+
+class SelectOnlyShapeCommand(SetSelectionCommand):
+    def __init__(self, storage: ShapeStorage, factory: AbstractFactory, shape: Shape) -> None:
+        super().__init__(storage, factory, [shape.object_id()], "Выделить объект")
 
 
 class ToggleShapeSelectionCommand(SnapshotCommand):
     def __init__(self, storage: ShapeStorage, factory: AbstractFactory, shape: Shape) -> None:
-        super().__init__(storage, factory)
+        super().__init__(storage, factory, "Переключить выделение")
         self._shape = shape
 
     def _apply(self) -> bool:
@@ -144,26 +212,41 @@ class ToggleShapeSelectionCommand(SnapshotCommand):
 
 
 class SelectAllCommand(SnapshotCommand):
+    def __init__(self, storage: ShapeStorage, factory: AbstractFactory) -> None:
+        super().__init__(storage, factory, "Выделить все")
+
     def _apply(self) -> bool:
         return self._storage.select_all()
 
 
 class ClearSelectionCommand(SnapshotCommand):
+    def __init__(self, storage: ShapeStorage, factory: AbstractFactory) -> None:
+        super().__init__(storage, factory, "Снять выделение")
+
     def _apply(self) -> bool:
         return self._storage.clear_selection()
 
 
 class DeleteSelectedCommand(SnapshotCommand):
+    def __init__(self, storage: ShapeStorage, factory: AbstractFactory) -> None:
+        super().__init__(storage, factory, "Удалить выделенные объекты")
+
     def _apply(self) -> bool:
         return self._storage.remove_selected()
 
 
 class GroupSelectedCommand(SnapshotCommand):
+    def __init__(self, storage: ShapeStorage, factory: AbstractFactory) -> None:
+        super().__init__(storage, factory, "Сгруппировать объекты")
+
     def _apply(self) -> bool:
         return self._storage.group_selected()
 
 
 class UngroupSelectedCommand(SnapshotCommand):
+    def __init__(self, storage: ShapeStorage, factory: AbstractFactory) -> None:
+        super().__init__(storage, factory, "Разгруппировать объект")
+
     def _apply(self) -> bool:
         return self._storage.ungroup_selected()
 
@@ -176,8 +259,9 @@ class MoveSelectedCommand(SnapshotCommand):
         dx: float,
         dy: float,
         bounds: QRectF,
+        title: str = "Переместить выделенные объекты",
     ) -> None:
-        super().__init__(storage, factory)
+        super().__init__(storage, factory, title)
         self._dx = dx
         self._dy = dy
         self._bounds = QRectF(bounds)
@@ -188,7 +272,7 @@ class MoveSelectedCommand(SnapshotCommand):
 
 class ResizeSelectedCommand(SnapshotCommand):
     def __init__(self, storage: ShapeStorage, factory: AbstractFactory, delta: float, bounds: QRectF) -> None:
-        super().__init__(storage, factory)
+        super().__init__(storage, factory, "Изменить размер выделенных объектов")
         self._delta = delta
         self._bounds = QRectF(bounds)
 
@@ -198,11 +282,35 @@ class ResizeSelectedCommand(SnapshotCommand):
 
 class RecolorSelectedCommand(SnapshotCommand):
     def __init__(self, storage: ShapeStorage, factory: AbstractFactory, color: QColor) -> None:
-        super().__init__(storage, factory)
+        super().__init__(storage, factory, "Изменить цвет выделенных объектов")
         self._color = QColor(color)
 
     def _apply(self) -> bool:
         return self._storage.recolor_selected(self._color)
+
+
+class SetObjectPropertyCommand(SnapshotCommand):
+    def __init__(
+        self,
+        storage: ShapeStorage,
+        factory: AbstractFactory,
+        object_id: str,
+        property_name: str,
+        property_value: Any,
+        bounds: QRectF,
+        property_label: str,
+    ) -> None:
+        super().__init__(storage, factory, f"Изменить свойство: {property_label}")
+        self._object_id = object_id
+        self._property_name = property_name
+        self._property_value = property_value
+        self._bounds = QRectF(bounds)
+
+    def _apply(self) -> bool:
+        shape = self._storage.find_by_id(self._object_id)
+        if shape is None:
+            return False
+        return shape.apply_property_change(self._property_name, self._property_value, self._bounds)
 
 
 class LoadProjectCommand(SnapshotCommand):
@@ -213,7 +321,7 @@ class LoadProjectCommand(SnapshotCommand):
         file_path: str,
         bounds: QRectF,
     ) -> None:
-        super().__init__(storage, factory)
+        super().__init__(storage, factory, "Загрузить проект")
         self._file_path = file_path
         self._bounds = QRectF(bounds)
 

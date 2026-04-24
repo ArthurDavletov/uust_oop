@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QSignalBlocker, Qt
+from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import QAbstractItemView, QTreeWidget, QTreeWidgetItem
 
 from shape_storage import ShapeStorage
@@ -8,6 +8,8 @@ from shapes import Shape
 
 
 class StorageTreeView(QTreeWidget):
+    selectionRequested = Signal(list)
+
     def __init__(self, storage: ShapeStorage, parent=None) -> None:
         super().__init__(parent)
         self._storage = storage
@@ -77,7 +79,7 @@ class StorageTreeView(QTreeWidget):
             object_id = item.data(0, Qt.UserRole)
             if isinstance(object_id, str):
                 selected_ids.append(object_id)
-        self._storage.set_selection(selected_ids)
+        self.selectionRequested.emit(selected_ids)
 
     def _expanded_ids(self) -> set[str]:
         expanded_ids: set[str] = set()

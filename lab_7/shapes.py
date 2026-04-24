@@ -59,6 +59,26 @@ def _load_object_id(data: dict[str, Any]) -> str:
     return object_id or uuid.uuid4().hex
 
 
+def inspector_property(label: str, order: int, *, editable: bool = False, editor: str = "auto"):
+    def decorate(func):
+        func._inspector_label = label
+        func._inspector_order = order
+        func._inspector_editable = editable
+        func._inspector_editor = editor
+        return func
+
+    return decorate
+
+
+def _rects_equal(first: QRectF, second: QRectF) -> bool:
+    return (
+        math.isclose(first.left(), second.left())
+        and math.isclose(first.top(), second.top())
+        and math.isclose(first.width(), second.width())
+        and math.isclose(first.height(), second.height())
+    )
+
+
 class MovementObserver(Protocol):
     def source_moved(
         self,
@@ -119,6 +139,46 @@ class Shape(ABC):
 
     def details_text(self) -> str:
         return ""
+
+    @property
+    @inspector_property("ID", 0)
+    def object_id_text(self) -> str:
+        return self.object_id()
+
+    @property
+    @inspector_property("Тип", 1)
+    def type_text(self) -> str:
+        return self.type_name()
+
+    @property
+    @inspector_property("Название", 2)
+    def display_name_text(self) -> str:
+        return self.display_name()
+
+    @property
+    @inspector_property("X", 10, editable=True)
+    def x(self) -> float:
+        return round(self._rect.left(), 3)
+
+    @property
+    @inspector_property("Y", 11, editable=True)
+    def y(self) -> float:
+        return round(self._rect.top(), 3)
+
+    @property
+    @inspector_property("Ширина", 12, editable=True)
+    def width(self) -> float:
+        return round(self._rect.width(), 3)
+
+    @property
+    @inspector_property("Высота", 13, editable=True)
+    def height(self) -> float:
+        return round(self._rect.height(), 3)
+
+    @property
+    @inspector_property("Цвет", 14, editable=True, editor="color")
+    def color_hex(self) -> str:
+        return self.color.name()
 
     def children(self) -> list["Shape"]:
         return []
@@ -244,6 +304,29 @@ class Shape(ABC):
     def prepare_for_removal(self) -> None:
         pass
 
+    def apply_property_change(self, property_name: str, value: Any, bounds: QRectF) -> bool:
+        if property_name == "x":
+            dx = float(value) - self._rect.left()
+            moved_dx, moved_dy = self.move_by(dx, 0.0, bounds)
+            return not math.isclose(moved_dx, 0.0) or not math.isclose(moved_dy, 0.0)
+        if property_name == "y":
+            dx, dy = self.move_by(0.0, float(value) - self._rect.top(), bounds)
+            return not math.isclose(dx, 0.0) or not math.isclose(dy, 0.0)
+        if property_name == "width":
+            return self._set_rect_geometry(width=float(value), bounds=bounds)
+        if property_name == "height":
+            return self._set_rect_geometry(height=float(value), bounds=bounds)
+        if property_name == "color_hex":
+            color = QColor(str(value).strip())
+            if not color.isValid():
+                raise ValueError("Некорректный цвет. Используйте формат вроде #4f86f7.")
+            normalized = color.name()
+            if self.color.name() == normalized:
+                return False
+            self.color = color
+            return True
+        raise ValueError(f"Свойство {property_name} недоступно для изменения")
+
     def resolve_references(self, objects_by_id: Mapping[str, "Shape"]) -> None:
         del objects_by_id
 
@@ -300,6 +383,42 @@ class Shape(ABC):
 
         scale = min(1.0, max_width / width, max_height / height)
         return width * scale, height * scale
+
+    def _set_rect_geometry(
+        self,
+        *,
+        left: float | None = None,
+        top: float | None = None,
+        width: float | None = None,
+        height: float | None = None,
+        bounds: QRectF,
+    ) -> bool:
+        rect = QRectF(self._rect)
+        if left is not None:
+            rect.moveLeft(left)
+        if top is not None:
+            rect.moveTop(top)
+
+        target_width = rect.width() if width is None else max(float(width), self.MIN_SIZE)
+        target_height = rect.height() if height is None else max(float(height), self.MIN_SIZE)
+        target_width, target_height = self._normalize_size(target_width, target_height)
+        rect.setWidth(target_width)
+        rect.setHeight(target_height)
+        return self._apply_rect(rect, bounds)
+
+    def _apply_rect(self, rect: QRectF, bounds: QRectF) -> bool:
+        current = QRectF(self._rect)
+        fitted = self._fit_into(bounds, rect)
+        if _rects_equal(current, fitted):
+            return False
+
+        self._rect = fitted
+        dx = fitted.left() - current.left()
+        dy = fitted.top() - current.top()
+        if not math.isclose(dx, 0.0) or not math.isclose(dy, 0.0):
+            context = MoveContext([self.object_id()])
+            self._notify_moved(dx, dy, bounds, context)
+        return True
 
     def _notify_moved(self, dx: float, dy: float, bounds: QRectF, context: MoveContext) -> None:
         for observer in list(self._move_observers):
@@ -476,6 +595,11 @@ class GroupShape(Shape):
     def details_text(self) -> str:
         return f"Элементов: {len(self._children)}"
 
+    @property
+    @inspector_property("Элементов", 15)
+    def children_count(self) -> int:
+        return len(self._children)
+
     def _draw_shape(self, painter: QPainter) -> None:
         for child in self._children:
             child.draw(painter)
@@ -485,7 +609,9 @@ class GroupShape(Shape):
 
     @property
     def color(self) -> QColor:
-        return QColor("#000000")
+        if not self._children:
+            return QColor("#000000")
+        return self._children[0].color
 
     @color.setter
     def color(self, color: QColor) -> None:
@@ -566,6 +692,27 @@ class GroupShape(Shape):
             child.set_selected(True)
         self._refresh_rect()
         return children
+
+    def apply_property_change(self, property_name: str, value: Any, bounds: QRectF) -> bool:
+        if property_name in {"width", "height"}:
+            current = self.rect()
+            current_size = current.width() if property_name == "width" else current.height()
+            if current_size <= 0:
+                return False
+
+            target_size = max(float(value), self.MIN_SIZE)
+            scale = target_size / current_size
+            if math.isclose(scale, 1.0):
+                return False
+
+            origin = current.topLeft()
+            for child in self._children:
+                child.scale_from(origin, scale, bounds)
+            self._refresh_rect()
+            self.ensure_inside(bounds)
+            return True
+
+        return super().apply_property_change(property_name, value, bounds)
 
     def save(self, indent: int = 0) -> list[str]:
         prefix = "  " * indent
@@ -678,6 +825,37 @@ class ArrowLink(Shape, MovementObserver):
             return ""
         return f"{source_name} -> {target_name}"
 
+    @property
+    def x(self) -> float:
+        return round(self.rect().left(), 3)
+
+    @property
+    def y(self) -> float:
+        return round(self.rect().top(), 3)
+
+    @property
+    def width(self) -> float:
+        return round(self.rect().width(), 3)
+
+    @property
+    def height(self) -> float:
+        return round(self.rect().height(), 3)
+
+    @property
+    @inspector_property("Источник", 10)
+    def source_object_text(self) -> str:
+        return self._source.display_name() if self._source is not None else self._source_id
+
+    @property
+    @inspector_property("Приемник", 11)
+    def target_object_text(self) -> str:
+        return self._target.display_name() if self._target is not None else self._target_id
+
+    @property
+    @inspector_property("Длина", 12)
+    def length(self) -> float:
+        return round(self._line().length(), 3)
+
     def source_id(self) -> str:
         return self._source_id
 
@@ -729,6 +907,11 @@ class ArrowLink(Shape, MovementObserver):
 
     def ensure_inside(self, bounds: QRectF) -> None:
         del bounds
+
+    def apply_property_change(self, property_name: str, value: Any, bounds: QRectF) -> bool:
+        if property_name == "color_hex":
+            return super().apply_property_change(property_name, value, bounds)
+        raise ValueError("Для стрелки доступны только свойства просмотра и изменение цвета")
 
     def rect(self) -> QRectF:
         line = self._line()
