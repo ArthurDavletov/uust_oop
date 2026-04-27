@@ -157,12 +157,13 @@ class ShapeStorage:
         return True
 
     def has_link(self, source_id: str, target_id: str, bidirectional: bool = False) -> bool:
+        del bidirectional
         for shape in self._shapes:
             if not isinstance(shape, ArrowLink):
                 continue
             same_direction = shape.source_id() == source_id and shape.target_id() == target_id
             reverse_direction = shape.source_id() == target_id and shape.target_id() == source_id
-            if same_direction or (reverse_direction and (bidirectional or shape.bidirectional)):
+            if same_direction or reverse_direction:
                 return True
         return False
 
@@ -656,21 +657,12 @@ class ShapeStorage:
         if source_id not in valid_ids or target_id not in valid_ids:
             return False
 
-        bidirectional = self._truthy(object_data.get("bidirectional", False))
-        for existing_source, existing_target, existing_bidirectional in link_pairs:
+        for existing_source, existing_target, _ in link_pairs:
             same_direction = existing_source == source_id and existing_target == target_id
             reverse_direction = existing_source == target_id and existing_target == source_id
-            if same_direction or (reverse_direction and (bidirectional or existing_bidirectional)):
+            if same_direction or reverse_direction:
                 return False
         return True
-
-    @staticmethod
-    def _truthy(value: Any) -> bool:
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, int | float):
-            return bool(value)
-        return str(value).strip().lower() in {"1", "true", "yes", "да", "on"}
 
     def _notify(self, reason: str) -> None:
         for observer in list(self._observers):
