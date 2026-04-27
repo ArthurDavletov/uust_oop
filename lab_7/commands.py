@@ -305,13 +305,20 @@ class PasteObjectsCommand(SnapshotCommand):
         factory: AbstractFactory,
         objects_data: list[dict[str, Any]],
         bounds: QRectF,
+        offset: float = 24.0,
     ) -> None:
         super().__init__(storage, factory, "Вставить объекты")
         self._objects_data = objects_data
         self._bounds = QRectF(bounds)
+        self._offset = offset
 
     def _apply(self) -> bool:
-        return self._storage.paste_objects(self._objects_data, self._factory, self._bounds)
+        return self._storage.paste_objects(
+            self._objects_data,
+            self._factory,
+            self._bounds,
+            self._offset,
+        )
 
 
 class SetObjectPropertyCommand(SnapshotCommand):

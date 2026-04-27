@@ -53,6 +53,7 @@ class PaintArea(QWidget):
         self._arrow_bidirectional = False
         self._arrow_source: Shape | None = None
         self._clipboard_data: list[dict] = []
+        self._clipboard_offset = 24.0
         self.setFocusPolicy(Qt.StrongFocus)
         self.setMinimumSize(640, 420)
 
@@ -135,6 +136,7 @@ class PaintArea(QWidget):
         if not clipboard_data:
             return
         self._clipboard_data = clipboard_data
+        self._clipboard_offset = 24.0
         self.clipboardAvailabilityChanged.emit(True)
 
     def cut_selected(self) -> None:
@@ -143,6 +145,7 @@ class PaintArea(QWidget):
         if not clipboard_data:
             return
         self._clipboard_data = clipboard_data
+        self._clipboard_offset = 0.0
         self.clipboardAvailabilityChanged.emit(True)
         self._run_command(DeleteSelectedCommand(self._storage, self._shape_factory))
 
@@ -156,6 +159,7 @@ class PaintArea(QWidget):
                 self._shape_factory,
                 self._clipboard_data,
                 self._workspace_rect(),
+                self._clipboard_offset,
             )
         )
 
