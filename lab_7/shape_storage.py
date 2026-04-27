@@ -114,10 +114,11 @@ class ShapeStorage:
             return False
 
         self._shapes, removed = self._remove_selected_from(self._shapes)
+        normalized = self._normalize_groups()
         self._cleanup_invalid_links()
-        if removed:
+        if removed or normalized:
             self._notify("structure")
-        return removed
+        return removed or normalized
 
     def group_selected(self) -> bool:
         selected = [shape for shape in self._shapes if shape.is_selected() and not shape.is_link()]
@@ -150,6 +151,7 @@ class ShapeStorage:
         if not changed:
             return False
 
+        self._normalize_groups()
         self._cleanup_invalid_links()
         self._notify("structure")
         return True
@@ -497,10 +499,6 @@ class ShapeStorage:
                 if children_changed:
                     shape.replace_children(children)
                     changed = True
-                if not shape.children():
-                    self._detach_links([shape])
-                    changed = True
-                    continue
 
             kept.append(shape)
 
@@ -521,6 +519,37 @@ class ShapeStorage:
                 if children_changed:
                     shape.replace_children(children)
                     changed = True
+
+            result.append(shape)
+
+        return result, changed
+
+    def _normalize_groups(self) -> bool:
+        self._shapes, changed = self._normalize_groups_in(self._shapes)
+        return changed
+
+    def _normalize_groups_in(self, shapes: Iterable[Shape]) -> tuple[list[Shape], bool]:
+        result: list[Shape] = []
+        changed = False
+
+        for shape in shapes:
+            if isinstance(shape, GroupShape):
+                children, children_changed = self._normalize_groups_in(shape.children())
+                if children_changed:
+                    shape.replace_children(children)
+                    changed = True
+
+                children = shape.children()
+                if not children:
+                    changed = True
+                    continue
+                if len(children) == 1:
+                    only_child = children[0]
+                    only_child.set_selected(shape.is_selected() or only_child.is_selected())
+                    shape.replace_children([])
+                    result.append(only_child)
+                    changed = True
+                    continue
 
             result.append(shape)
 

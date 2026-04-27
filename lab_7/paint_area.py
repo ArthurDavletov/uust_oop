@@ -90,6 +90,20 @@ class PaintArea(QWidget):
         return self._arrow_mode
 
     def start_arrow_creation(self, bidirectional: bool = False) -> None:
+        selected_shapes = self._storage.selected_shapes()
+        if len(selected_shapes) == 2 and all(shape.can_create_links() for shape in selected_shapes):
+            self._run_command(
+                CreateArrowCommand(
+                    self._storage,
+                    self._shape_factory,
+                    selected_shapes[0],
+                    selected_shapes[1],
+                    bidirectional,
+                )
+            )
+            self.arrowModeChanged.emit(False, "", False)
+            return
+
         self._arrow_mode = True
         self._arrow_bidirectional = bidirectional
         self._arrow_source = None
@@ -219,6 +233,9 @@ class PaintArea(QWidget):
         shape = self._storage.shape_at(point)
 
         if shape is None:
+            if self.has_selection() and not ctrl_pressed:
+                self._run_command(ClearSelectionCommand(self._storage, self._shape_factory))
+                return
             self._run_command(
                 CreateShapeCommand(
                     self._storage,

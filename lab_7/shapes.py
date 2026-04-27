@@ -652,6 +652,7 @@ class GroupShape(Shape):
             return 0.0, 0.0
 
         context.remember(self.object_id())
+        self._remember_descendants(context)
         for child in self._children:
             child.move_by(actual_dx, actual_dy, bounds, context)
         self._refresh_rect()
@@ -783,6 +784,12 @@ class GroupShape(Shape):
         for child in self._children[1:]:
             rect = rect.united(child.rect())
         self._rect = rect
+
+    def _remember_descendants(self, context: MoveContext) -> None:
+        for child in self._children:
+            context.remember(child.object_id())
+            if isinstance(child, GroupShape):
+                child._remember_descendants(context)
 
     def _minimal_scale(self) -> float:
         scale = 0.01
@@ -1012,7 +1019,8 @@ class ArrowLink(Shape, MovementObserver):
             return
 
         painter.save()
-        painter.setPen(QPen(self.color, 3))
+        pen_style = Qt.SolidLine if self._bidirectional else Qt.DashLine
+        painter.setPen(QPen(self.color, 3, pen_style))
         painter.drawLine(line)
         painter.setBrush(self.color)
         painter.drawPolygon(self._arrow_head(line))
