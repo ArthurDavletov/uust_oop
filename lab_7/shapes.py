@@ -59,6 +59,14 @@ def _load_object_id(data: dict[str, Any]) -> str:
     return object_id or uuid.uuid4().hex
 
 
+def _parse_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int | float):
+        return bool(value)
+    return str(value).strip().lower() in {"1", "true", "yes", "да", "on"}
+
+
 def inspector_property(label: str, order: int, *, editable: bool = False, editor: str = "auto"):
     def decorate(func):
         func._inspector_label = label
@@ -592,6 +600,13 @@ class GroupShape(Shape):
     def children(self) -> list["Shape"]:
         return list(self._children)
 
+    def replace_children(self, children: Iterable[Shape]) -> None:
+        self._children = list(children)
+        self._refresh_rect()
+
+    def refresh_bounds(self) -> None:
+        self._refresh_rect()
+
     def details_text(self) -> str:
         return f"Элементов: {len(self._children)}"
 
@@ -802,12 +817,14 @@ class ArrowLink(Shape, MovementObserver):
         self,
         source: Shape | None = None,
         target: Shape | None = None,
+        bidirectional: bool = False,
         object_id: str | None = None,
     ) -> None:
         super().__init__(QRectF(), object_id)
         self._color = QColor(self.DEFAULT_COLOR)
         self._source_id = source.object_id() if source is not None else ""
         self._target_id = target.object_id() if target is not None else ""
+        self._bidirectional = bidirectional
         self._source: Shape | None = None
         self._target: Shape | None = None
         self.bind(source, target)
@@ -823,7 +840,8 @@ class ArrowLink(Shape, MovementObserver):
         target_name = self._target.display_name() if self._target is not None else self._target_id[:8]
         if not source_name and not target_name:
             return ""
-        return f"{source_name} -> {target_name}"
+        arrow_text = "<->" if self._bidirectional else "->"
+        return f"{source_name} {arrow_text} {target_name}"
 
     @property
     def x(self) -> float:
@@ -852,7 +870,12 @@ class ArrowLink(Shape, MovementObserver):
         return self._target.display_name() if self._target is not None else self._target_id
 
     @property
-    @inspector_property("Длина", 12)
+    @inspector_property("Двунаправленная", 12, editable=True)
+    def bidirectional(self) -> bool:
+        return self._bidirectional
+
+    @property
+    @inspector_property("Длина", 13)
     def length(self) -> float:
         return round(self._line().length(), 3)
 
@@ -865,6 +888,8 @@ class ArrowLink(Shape, MovementObserver):
     def bind(self, source: Shape | None, target: Shape | None) -> None:
         if self._source is not None:
             self._source.remove_move_observer(self)
+        if self._target is not None and self._bidirectional:
+            self._target.remove_move_observer(self)
 
         self._source = source
         self._target = target
@@ -873,10 +898,24 @@ class ArrowLink(Shape, MovementObserver):
 
         if self._source is not None:
             self._source.add_move_observer(self)
+        if self._target is not None and self._bidirectional:
+            self._target.add_move_observer(self)
+
+    def set_bidirectional(self, bidirectional: bool) -> bool:
+        if self._bidirectional == bidirectional:
+            return False
+        if self._target is not None and self._bidirectional:
+            self._target.remove_move_observer(self)
+        self._bidirectional = bidirectional
+        if self._target is not None and self._bidirectional:
+            self._target.add_move_observer(self)
+        return True
 
     def prepare_for_removal(self) -> None:
         if self._source is not None:
             self._source.remove_move_observer(self)
+        if self._target is not None and self._bidirectional:
+            self._target.remove_move_observer(self)
         self._source = None
         self._target = None
 
@@ -909,9 +948,11 @@ class ArrowLink(Shape, MovementObserver):
         del bounds
 
     def apply_property_change(self, property_name: str, value: Any, bounds: QRectF) -> bool:
+        if property_name == "bidirectional":
+            return self.set_bidirectional(bool(value))
         if property_name == "color_hex":
             return super().apply_property_change(property_name, value, bounds)
-        raise ValueError("Для стрелки доступны только свойства просмотра и изменение цвета")
+        raise ValueError("Для стрелки доступны свойства просмотра, изменение цвета и двунаправленности")
 
     def rect(self) -> QRectF:
         line = self._line()
@@ -935,6 +976,7 @@ class ArrowLink(Shape, MovementObserver):
             f"{prefix}  color {self.color.name()}",
             f"{prefix}  source {self._source_id}",
             f"{prefix}  target {self._target_id}",
+            f"{prefix}  bidirectional {str(self._bidirectional).lower()}",
             f"{prefix}end",
         ]
 
@@ -945,6 +987,7 @@ class ArrowLink(Shape, MovementObserver):
             "color": self.color.name(),
             "source": self._source_id,
             "target": self._target_id,
+            "bidirectional": self._bidirectional,
         }
 
     def load(self, data: dict[str, Any], factory: "ShapeFactory") -> None:
@@ -954,6 +997,7 @@ class ArrowLink(Shape, MovementObserver):
         self._selected = False
         self._source_id = str(data.get("source", "")).strip()
         self._target_id = str(data.get("target", "")).strip()
+        self._bidirectional = _parse_bool(data.get("bidirectional", False))
         self._source = None
         self._target = None
         if not self._source_id or not self._target_id:
@@ -972,6 +1016,8 @@ class ArrowLink(Shape, MovementObserver):
         painter.drawLine(line)
         painter.setBrush(self.color)
         painter.drawPolygon(self._arrow_head(line))
+        if self._bidirectional:
+            painter.drawPolygon(self._arrow_head(QLineF(line.p2(), line.p1())))
         painter.restore()
 
     def source_moved(
@@ -984,11 +1030,13 @@ class ArrowLink(Shape, MovementObserver):
     ) -> None:
         if self._source is None or self._target is None:
             return
-        if source.object_id() != self._source.object_id():
+        if source.object_id() == self._source.object_id():
+            if not context.has_moved(self._target.object_id()):
+                self._target.move_by(dx, dy, bounds, context)
             return
-        if context.has_moved(self._target.object_id()):
-            return
-        self._target.move_by(dx, dy, bounds, context)
+        if self._bidirectional and source.object_id() == self._target.object_id():
+            if not context.has_moved(self._source.object_id()):
+                self._source.move_by(dx, dy, bounds, context)
 
     def _line(self) -> QLineF:
         if self._source is None or self._target is None:

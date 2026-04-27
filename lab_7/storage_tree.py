@@ -35,7 +35,7 @@ class StorageTreeView(QTreeWidget):
         blocker = QSignalBlocker(self)
         self.clear()
         for shape in self._storage.top_level_shapes():
-            self._append_item(None, shape, expanded_ids, selected_ids, selectable=True)
+            self._append_item(None, shape, expanded_ids, selected_ids)
         del blocker
 
         for column in range(self.columnCount()):
@@ -47,17 +47,12 @@ class StorageTreeView(QTreeWidget):
         shape: Shape,
         expanded_ids: set[str],
         selected_ids: set[str],
-        *,
-        selectable: bool,
     ) -> None:
         item = QTreeWidgetItem([shape.display_name(), shape.details_text()])
         item.setData(0, Qt.UserRole, shape.object_id())
-        item.setData(0, Qt.UserRole + 1, selectable)
+        item.setData(0, Qt.UserRole + 1, True)
 
-        flags = Qt.ItemIsEnabled
-        if selectable:
-            flags |= Qt.ItemIsSelectable
-        item.setFlags(flags)
+        item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
 
         if parent_item is None:
             self.addTopLevelItem(item)
@@ -65,11 +60,11 @@ class StorageTreeView(QTreeWidget):
             parent_item.addChild(item)
 
         item.setExpanded(shape.object_id() in expanded_ids)
-        if selectable and shape.object_id() in selected_ids:
+        if shape.object_id() in selected_ids:
             item.setSelected(True)
 
         for child in shape.children():
-            self._append_item(item, child, expanded_ids, selected_ids, selectable=False)
+            self._append_item(item, child, expanded_ids, selected_ids)
 
     def _apply_tree_selection(self) -> None:
         selected_ids: list[str] = []

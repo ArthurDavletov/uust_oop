@@ -15,6 +15,7 @@ from commands import (
     GroupSelectedCommand,
     LoadProjectCommand,
     MoveSelectedCommand,
+    PasteObjectsCommand,
     RecolorSelectedCommand,
     ResizeSelectedCommand,
     SetObjectPropertyCommand,
@@ -31,7 +32,8 @@ from shapes import Shape, ShapeFactory
 class PaintArea(QWidget):
     selectionChanged = Signal(bool)
     undoAvailabilityChanged = Signal(bool)
-    arrowModeChanged = Signal(bool, str)
+    arrowModeChanged = Signal(bool, str, bool)
+    clipboardAvailabilityChanged = Signal(bool)
     MOVE_STEP = 10
     FAST_MOVE_STEP = 20
     SCALE_STEP = 10
@@ -48,7 +50,9 @@ class PaintArea(QWidget):
         self._drag_last_pos: QPointF | None = None
         self._drag_moved = False
         self._arrow_mode = False
+        self._arrow_bidirectional = False
         self._arrow_source: Shape | None = None
+        self._clipboard_data: list[dict] = []
         self.setFocusPolicy(Qt.StrongFocus)
         self.setMinimumSize(640, 420)
 
@@ -73,6 +77,9 @@ class PaintArea(QWidget):
     def can_undo(self) -> bool:
         return self._command_stack.can_undo()
 
+    def can_paste(self) -> bool:
+        return bool(self._clipboard_data)
+
     def command_stack(self) -> CommandStack:
         return self._command_stack
 
@@ -82,18 +89,21 @@ class PaintArea(QWidget):
     def is_arrow_mode_active(self) -> bool:
         return self._arrow_mode
 
-    def start_arrow_creation(self) -> None:
+    def start_arrow_creation(self, bidirectional: bool = False) -> None:
         self._arrow_mode = True
+        self._arrow_bidirectional = bidirectional
         self._arrow_source = None
-        self.arrowModeChanged.emit(True, "Выберите объект-источник стрелки")
+        arrow_name = "двунаправленной стрелки" if bidirectional else "стрелки"
+        self.arrowModeChanged.emit(True, f"Выберите объект-источник {arrow_name}", bidirectional)
         self.setFocus()
 
     def cancel_arrow_creation(self) -> None:
         if not self._arrow_mode and self._arrow_source is None:
             return
         self._arrow_mode = False
+        self._arrow_bidirectional = False
         self._arrow_source = None
-        self.arrowModeChanged.emit(False, "")
+        self.arrowModeChanged.emit(False, "", False)
 
     def undo(self) -> None:
         self.cancel_arrow_creation()
@@ -104,6 +114,36 @@ class PaintArea(QWidget):
     def delete_selected(self) -> None:
         self.cancel_arrow_creation()
         self._run_command(DeleteSelectedCommand(self._storage, self._shape_factory))
+
+    def copy_selected(self) -> None:
+        self.cancel_arrow_creation()
+        clipboard_data = self._storage.selected_clipboard_data()
+        if not clipboard_data:
+            return
+        self._clipboard_data = clipboard_data
+        self.clipboardAvailabilityChanged.emit(True)
+
+    def cut_selected(self) -> None:
+        self.cancel_arrow_creation()
+        clipboard_data = self._storage.selected_clipboard_data()
+        if not clipboard_data:
+            return
+        self._clipboard_data = clipboard_data
+        self.clipboardAvailabilityChanged.emit(True)
+        self._run_command(DeleteSelectedCommand(self._storage, self._shape_factory))
+
+    def paste_clipboard(self) -> None:
+        self.cancel_arrow_creation()
+        if not self._clipboard_data:
+            return
+        self._run_command(
+            PasteObjectsCommand(
+                self._storage,
+                self._shape_factory,
+                self._clipboard_data,
+                self._workspace_rect(),
+            )
+        )
 
     def clear_selection(self) -> None:
         self.cancel_arrow_creation()
@@ -255,6 +295,15 @@ class PaintArea(QWidget):
             case Qt.Key_A if event.modifiers() & Qt.ControlModifier:
                 self.select_all()
                 event.accept()
+            case Qt.Key_C if event.modifiers() & Qt.ControlModifier:
+                self.copy_selected()
+                event.accept()
+            case Qt.Key_X if event.modifiers() & Qt.ControlModifier:
+                self.cut_selected()
+                event.accept()
+            case Qt.Key_V if event.modifiers() & Qt.ControlModifier:
+                self.paste_clipboard()
+                event.accept()
             case Qt.Key_G if event.modifiers() & Qt.ControlModifier:
                 self.group_selected()
                 event.accept()
@@ -304,18 +353,39 @@ class PaintArea(QWidget):
         if self._arrow_source is None:
             self._arrow_source = shape
             self._run_command(SelectOnlyShapeCommand(self._storage, self._shape_factory, shape))
-            self.arrowModeChanged.emit(True, f"Источник: {shape.display_name()}. Выберите объект-приемник")
+            arrow_name = "двунаправленной стрелки" if self._arrow_bidirectional else "стрелки"
+            self.arrowModeChanged.emit(
+                True,
+                f"Источник {arrow_name}: {shape.display_name()}. Выберите объект-приемник",
+                self._arrow_bidirectional,
+            )
             return
 
         if shape.object_id() == self._arrow_source.object_id():
-            self.arrowModeChanged.emit(True, "Источник и приемник стрелки должны различаться")
+            self.arrowModeChanged.emit(
+                True,
+                "Источник и приемник стрелки должны различаться",
+                self._arrow_bidirectional,
+            )
             return
 
-        created = self._run_command(CreateArrowCommand(self._storage, self._shape_factory, self._arrow_source, shape))
+        created = self._run_command(
+            CreateArrowCommand(
+                self._storage,
+                self._shape_factory,
+                self._arrow_source,
+                shape,
+                self._arrow_bidirectional,
+            )
+        )
         if created:
             self.cancel_arrow_creation()
         else:
-            self.arrowModeChanged.emit(True, "Такую стрелку создать нельзя или она уже существует")
+            self.arrowModeChanged.emit(
+                True,
+                "Такую стрелку создать нельзя или она уже существует",
+                self._arrow_bidirectional,
+            )
 
     def _begin_drag(self, point: QPointF) -> None:
         self._drag_start_snapshot = self._storage.snapshot()

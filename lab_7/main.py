@@ -55,21 +55,27 @@ class MainWindow(QMainWindow):
         self._save_action: QAction | None = None
         self._color_action: QAction | None = None
         self._delete_action: QAction | None = None
+        self._copy_action: QAction | None = None
+        self._cut_action: QAction | None = None
+        self._paste_action: QAction | None = None
         self._clear_action: QAction | None = None
         self._select_all_action: QAction | None = None
         self._undo_action: QAction | None = None
         self._group_action: QAction | None = None
         self._ungroup_action: QAction | None = None
         self._arrow_action: QAction | None = None
+        self._bidirectional_arrow_action: QAction | None = None
         self._exit_action: QAction | None = None
 
         self._init_ui()
         self._paint_area.selectionChanged.connect(self._update_selection_actions)
         self._paint_area.undoAvailabilityChanged.connect(self._update_undo_action)
+        self._paint_area.clipboardAvailabilityChanged.connect(self._update_paste_action)
         self._paint_area.arrowModeChanged.connect(self._update_arrow_mode)
         self._tree_widget.selectionRequested.connect(self._paint_area.set_selection)
         self._update_selection_actions(False)
         self._update_undo_action(False)
+        self._update_paste_action(False)
         self.statusBar().showMessage("Готово")
 
     def _init_ui(self) -> None:
@@ -126,6 +132,18 @@ class MainWindow(QMainWindow):
         self._delete_action.setShortcut("Delete")
         self._delete_action.triggered.connect(self._paint_area.delete_selected)
 
+        self._copy_action = QAction("Копировать", self)
+        self._copy_action.setShortcut("Ctrl+C")
+        self._copy_action.triggered.connect(self._paint_area.copy_selected)
+
+        self._cut_action = QAction("Вырезать", self)
+        self._cut_action.setShortcut("Ctrl+X")
+        self._cut_action.triggered.connect(self._paint_area.cut_selected)
+
+        self._paste_action = QAction("Вставить", self)
+        self._paste_action.setShortcut("Ctrl+V")
+        self._paste_action.triggered.connect(self._paint_area.paste_clipboard)
+
         self._select_all_action = QAction("Выделить все", self)
         self._select_all_action.setShortcut("Ctrl+A")
         self._select_all_action.triggered.connect(self._paint_area.select_all)
@@ -147,6 +165,11 @@ class MainWindow(QMainWindow):
         self._arrow_action.setCheckable(True)
         self._arrow_action.triggered.connect(self._toggle_arrow_mode)
 
+        self._bidirectional_arrow_action = QAction("Двунаправленная стрелка", self)
+        self._bidirectional_arrow_action.setShortcut("Ctrl+Shift+R")
+        self._bidirectional_arrow_action.setCheckable(True)
+        self._bidirectional_arrow_action.triggered.connect(self._toggle_bidirectional_arrow_mode)
+
         self._exit_action = QAction("Выход", self)
         self._exit_action.setShortcut("Alt+F4")
         self._exit_action.triggered.connect(self.close)
@@ -158,6 +181,17 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction(self._exit_action)
 
+        edit_menu = self.menuBar().addMenu("Правка")
+        edit_menu.addAction(self._undo_action)
+        edit_menu.addSeparator()
+        edit_menu.addAction(self._copy_action)
+        edit_menu.addAction(self._cut_action)
+        edit_menu.addAction(self._paste_action)
+        edit_menu.addSeparator()
+        edit_menu.addAction(self._select_all_action)
+        edit_menu.addAction(self._clear_action)
+        edit_menu.addAction(self._delete_action)
+
     def _create_toolbar(self) -> None:
         toolbar = QToolBar("Редактирование", self)
         toolbar.setMovable(False)
@@ -166,10 +200,14 @@ class MainWindow(QMainWindow):
         toolbar.addSeparator()
         toolbar.addAction(self._select_all_action)
         toolbar.addAction(self._clear_action)
+        toolbar.addAction(self._copy_action)
+        toolbar.addAction(self._cut_action)
+        toolbar.addAction(self._paste_action)
         toolbar.addSeparator()
         toolbar.addAction(self._group_action)
         toolbar.addAction(self._ungroup_action)
         toolbar.addAction(self._arrow_action)
+        toolbar.addAction(self._bidirectional_arrow_action)
         toolbar.addSeparator()
         toolbar.addAction(self._color_action)
         toolbar.addAction(self._delete_action)
@@ -193,7 +231,13 @@ class MainWindow(QMainWindow):
 
     def _toggle_arrow_mode(self, checked: bool) -> None:
         if checked:
-            self._paint_area.start_arrow_creation()
+            self._paint_area.start_arrow_creation(False)
+        else:
+            self._paint_area.cancel_arrow_creation()
+
+    def _toggle_bidirectional_arrow_mode(self, checked: bool) -> None:
+        if checked:
+            self._paint_area.start_arrow_creation(True)
         else:
             self._paint_area.cancel_arrow_creation()
 
@@ -243,16 +287,24 @@ class MainWindow(QMainWindow):
         self._clear_action.setEnabled(has_selection)
         self._color_action.setEnabled(has_selection)
         self._delete_action.setEnabled(has_selection)
+        self._copy_action.setEnabled(has_selection)
+        self._cut_action.setEnabled(has_selection)
         self._group_action.setEnabled(self._paint_area.can_group_selection())
         self._ungroup_action.setEnabled(self._paint_area.can_ungroup_selection())
 
     def _update_undo_action(self, can_undo: bool) -> None:
         self._undo_action.setEnabled(can_undo)
 
-    def _update_arrow_mode(self, active: bool, message: str) -> None:
+    def _update_paste_action(self, can_paste: bool) -> None:
+        self._paste_action.setEnabled(can_paste)
+
+    def _update_arrow_mode(self, active: bool, message: str, bidirectional: bool) -> None:
         self._arrow_action.blockSignals(True)
-        self._arrow_action.setChecked(active)
+        self._arrow_action.setChecked(active and not bidirectional)
         self._arrow_action.blockSignals(False)
+        self._bidirectional_arrow_action.blockSignals(True)
+        self._bidirectional_arrow_action.setChecked(active and bidirectional)
+        self._bidirectional_arrow_action.blockSignals(False)
 
         if active:
             self.statusBar().showMessage(message or "Режим создания стрелки")

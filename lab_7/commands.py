@@ -168,17 +168,26 @@ class CreateShapeCommand(SnapshotCommand):
 
 
 class CreateArrowCommand(SnapshotCommand):
-    def __init__(self, storage: ShapeStorage, factory: AbstractFactory, source: Shape, target: Shape) -> None:
-        super().__init__(storage, factory, "Создать стрелку")
+    def __init__(
+        self,
+        storage: ShapeStorage,
+        factory: AbstractFactory,
+        source: Shape,
+        target: Shape,
+        bidirectional: bool = False,
+    ) -> None:
+        title = "Создать двунаправленную стрелку" if bidirectional else "Создать стрелку"
+        super().__init__(storage, factory, title)
         self._source = source
         self._target = target
+        self._bidirectional = bidirectional
 
     def _apply(self) -> bool:
         if self._source.object_id() == self._target.object_id():
             return False
-        if self._storage.has_link(self._source.object_id(), self._target.object_id()):
+        if self._storage.has_link(self._source.object_id(), self._target.object_id(), self._bidirectional):
             return False
-        arrow = ArrowLink(self._source, self._target)
+        arrow = ArrowLink(self._source, self._target, self._bidirectional)
         return self._storage.add(arrow, clear_selection=True, select_new=True)
 
 
@@ -289,6 +298,22 @@ class RecolorSelectedCommand(SnapshotCommand):
         return self._storage.recolor_selected(self._color)
 
 
+class PasteObjectsCommand(SnapshotCommand):
+    def __init__(
+        self,
+        storage: ShapeStorage,
+        factory: AbstractFactory,
+        objects_data: list[dict[str, Any]],
+        bounds: QRectF,
+    ) -> None:
+        super().__init__(storage, factory, "Вставить объекты")
+        self._objects_data = objects_data
+        self._bounds = QRectF(bounds)
+
+    def _apply(self) -> bool:
+        return self._storage.paste_objects(self._objects_data, self._factory, self._bounds)
+
+
 class SetObjectPropertyCommand(SnapshotCommand):
     def __init__(
         self,
@@ -307,10 +332,12 @@ class SetObjectPropertyCommand(SnapshotCommand):
         self._bounds = QRectF(bounds)
 
     def _apply(self) -> bool:
-        shape = self._storage.find_by_id(self._object_id)
-        if shape is None:
-            return False
-        return shape.apply_property_change(self._property_name, self._property_value, self._bounds)
+        return self._storage.apply_property_change(
+            self._object_id,
+            self._property_name,
+            self._property_value,
+            self._bounds,
+        )
 
 
 class LoadProjectCommand(SnapshotCommand):
