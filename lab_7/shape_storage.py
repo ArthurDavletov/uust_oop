@@ -295,7 +295,7 @@ class ShapeStorage:
             shape = factory.create(shape_type)
             shape.load(object_data, factory)
             shape.set_selected(True)
-            if not shape.is_link():
+            if not shape.is_link() and offset != 0.0:
                 shape.ensure_inside(bounds)
             loaded_shapes.append(shape)
             if isinstance(shape, ArrowLink):

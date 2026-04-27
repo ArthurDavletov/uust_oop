@@ -379,8 +379,12 @@ class Shape(ABC):
         return width, height
 
     def _fit_into(self, bounds: QRectF, rect: QRectF) -> QRectF:
-        width = min(rect.width(), bounds.width())
-        height = min(rect.height(), bounds.height())
+        bounds = bounds.normalized()
+        rect = rect.normalized()
+        available_width = max(bounds.width(), 0.0)
+        available_height = max(bounds.height(), 0.0)
+        width = min(max(rect.width(), 0.0), available_width)
+        height = min(max(rect.height(), 0.0), available_height)
         left = min(max(rect.left(), bounds.left()), bounds.right() - width)
         top = min(max(rect.top(), bounds.top()), bounds.bottom() - height)
         return QRectF(left, top, width, height)
