@@ -102,7 +102,7 @@ class PropertiesPanel(QWidget):
         shape = selected_shapes[0]
         self._current_object_id = shape.object_id()
         self._title_label.setText(shape.display_name())
-        self._hint_label.setText("Поля ниже собраны автоматически через интроспекцию свойств объекта.")
+        self._hint_label.setText("Ниже перечислены свойства объекта.")
 
         for prop in reflected_properties(shape):
             value_widget = self._create_value_widget(prop)
