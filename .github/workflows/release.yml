@@ -55,6 +55,21 @@ jobs:
           pip install -r requirements.txt
           pip install "pyinstaller>=6.1"
 
+      - name: Установка Qt/XCB библиотек на Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libxkbcommon-x11-0 \
+            libxcb-cursor0 \
+            libxcb-keysyms1 \
+            libxcb-image0 \
+            libxcb-icccm4 \
+            libxcb-render-util0 \
+            libxcb-xkb1 \
+            libxcb-shape0 \
+            libxcb-util1
+
       - name: Сборка программ на C++
         shell: bash
         run: |
@@ -90,7 +105,8 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          tar -czf ${{ matrix.archive_name }} -C package .
+          cd package
+          tar -czf ../${{ matrix.archive_name }} *
 
       - name: Отправка артефактов
         uses: actions/upload-artifact@v4
