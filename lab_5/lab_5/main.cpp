@@ -4,7 +4,10 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 void PrintTitle(const std::string_view title) {
   std::cout << "\n========== " << title << " ==========\n";
@@ -596,12 +599,12 @@ void ReturnDemo() {
             << value_from_local.Id() << '\n';
 
   Base* ptr_from_local = func2();
-  std::cout << "Получен указатель на local объект #" << ptr_from_local->Id()
-            << '\n';
+  std::cout << "Получен висячий указатель на уже уничтоженный local объект: "
+            << ptr_from_local << ". Разыменовывать его нельзя.\n";
 
-  Base& ref_from_local = func3();
-  std::cout << "Получена ссылка на local объект #" << ref_from_local.Id()
-            << '\n';
+  func3();
+  std::cout << "func3() вернула висячую ссылку на local объект. "
+            << "Сохранять и использовать ее нельзя.\n";
 
   Base value_from_dynamic = func4();
   std::cout << "В локальную переменную получена копия #" << value_from_dynamic.Id()
@@ -703,8 +706,10 @@ void SmartPointersDemo() {
 
 
 int main() {
+#ifdef _WIN32
   SetConsoleCP(CP_UTF8);
   SetConsoleOutputCP(CP_UTF8);
+#endif
 
   VirtualityDemo();
   TypeCheckDemo();

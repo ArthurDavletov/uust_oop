@@ -1,7 +1,10 @@
 ﻿#include <iostream>
-#include <windows.h>
 #include <format>
 #include <string>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include "point.h"
 #include "shape.h"
@@ -175,8 +178,10 @@ void BasePointerAndSlicingDemo() {
 
 int main() {
   // Исправление русского языка в консоли Windows
+  #ifdef _WIN32
   SetConsoleCP(CP_UTF8);
   SetConsoleOutputCP(CP_UTF8);
+  #endif
 
   StaticObjectsDemo();
   DynamicObjectsDemo();
