@@ -1,0 +1,120 @@
+name: Сборка и релиз
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x64
+            archive_name: uust_oop_windows_x64.zip
+          - os: ubuntu-latest
+            platform: linux-x64
+            archive_name: uust_oop_linux_x64.tar.gz
+          - os: macos-latest
+            platform: macos-x64
+            archive_name: uust_oop_macos_x64.tar.gz
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Установка зависимостей
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Сборка программ на C++
+        shell: bash
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release
+
+      - name: Сборка PySide6 приложений
+        shell: bash
+        run: |
+          pyinstaller --noconfirm --clean --onedir --windowed --name lab_1 lab_1/main.py
+          pyinstaller --noconfirm --clean --onedir --windowed --name lab_3_part_1 lab_3_part_1/main.py
+          pyinstaller --noconfirm --clean --onedir --windowed --name lab_3_part_2 lab_3_part_2/main.py
+          pyinstaller --noconfirm --clean --onedir --windowed --name lab_4 lab_4/main.py
+          pyinstaller --noconfirm --clean --onedir --windowed --name lab_6 lab_6/main.py
+          pyinstaller --noconfirm --clean --onedir --windowed --name lab_7 lab_7/main.py
+
+      - name: Подготовка файлов для архивации
+        shell: bash
+        run: |
+          mkdir -p package/bin
+
+          cp -r dist/lab_1 package/bin/
+          cp -r dist/lab_3_part_1 package/bin/
+          cp -r dist/lab_3_part_2 package/bin/
+          cp -r dist/lab_4 package/bin/
+          cp -r dist/lab_6 package/bin/
+          cp -r dist/lab_7 package/bin/
+
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cp build/Release/*.exe package/bin/ || cp build/*.exe package/bin/
+          else
+            find build -maxdepth 3 -type f -perm -111 -exec cp {} package/bin/ \;
+          fi
+
+      - name: Создание архива на Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path package/* -DestinationPath ${{ matrix.archive_name }}
+
+      - name: Создание архива на Linux/macOS
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          tar -czf ${{ matrix.archive_name }} -C package .
+
+      - name: Отправка артефактов
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}
+          path: ${{ matrix.archive_name }}
+
+  release:
+    name: Создание релиза
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Загрузка артефактов
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Создание контрольных сумм
+        run: |
+          cd release-assets
+          sha256sum * > checksums.txt
+
+      - name: Создание релиза и загрузка файлов
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" release-assets/* \
+            --title "${GITHUB_REF_NAME}" \
+            --notes "Автоматическая сборка для Windows, Linux и macOS."
