@@ -86,7 +86,6 @@ class PropertiesPanel(QWidget):
         self.refresh()
 
     def storage_changed(self, storage: ShapeStorage, reason: str) -> None:
-        del storage, reason
         self.refresh()
 
     def refresh(self) -> None:
