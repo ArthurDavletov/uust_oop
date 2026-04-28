@@ -35,12 +35,25 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Кеш PyInstaller
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pyinstaller
+            ~/Library/Application Support/pyinstaller
+            ~/AppData/Local/pyinstaller
+          key: ${{ runner.os }}-pyinstaller-${{ hashFiles('requirements.txt', 'uust_oop_gui.spec') }}
+          restore-keys: |
+            ${{ runner.os }}-pyinstaller-
 
       - name: Установка зависимостей
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pyinstaller
+          pip install "pyinstaller>=6.1"
 
       - name: Сборка программ на C++
         shell: bash
@@ -51,29 +64,20 @@ jobs:
       - name: Сборка PySide6 приложений
         shell: bash
         run: |
-          pyinstaller --noconfirm --clean --onedir --windowed --name lab_1 lab_1/main.py
-          pyinstaller --noconfirm --clean --onedir --windowed --name lab_3_part_1 lab_3_part_1/main.py
-          pyinstaller --noconfirm --clean --onedir --windowed --name lab_3_part_2 lab_3_part_2/main.py
-          pyinstaller --noconfirm --clean --onedir --windowed --name lab_4 lab_4/main.py
-          pyinstaller --noconfirm --clean --onedir --windowed --name lab_6 lab_6/main.py
-          pyinstaller --noconfirm --clean --onedir --windowed --name lab_7 lab_7/main.py
+          pyinstaller --noconfirm --workpath build/pyinstaller --distpath dist uust_oop_gui.spec
 
       - name: Подготовка файлов для архивации
         shell: bash
         run: |
-          mkdir -p package/bin
-
-          cp -r dist/lab_1 package/bin/
-          cp -r dist/lab_3_part_1 package/bin/
-          cp -r dist/lab_3_part_2 package/bin/
-          cp -r dist/lab_4 package/bin/
-          cp -r dist/lab_6 package/bin/
-          cp -r dist/lab_7 package/bin/
+          mkdir -p package
+          cp -r dist/uust_oop_gui/. package/
 
           if [ "$RUNNER_OS" = "Windows" ]; then
-            cp build/Release/*.exe package/bin/ || cp build/*.exe package/bin/
+            cp build/Release/lab2.exe package/
+            cp build/Release/lab5.exe package/
           else
-            find build -maxdepth 3 -type f -perm -111 -exec cp {} package/bin/ \;
+            cp build/lab2 package/
+            cp build/lab5 package/
           fi
 
       - name: Создание архива на Windows
