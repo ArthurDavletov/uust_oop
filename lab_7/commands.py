@@ -185,8 +185,18 @@ class CreateArrowCommand(SnapshotCommand):
     def _apply(self) -> bool:
         if self._source.object_id() == self._target.object_id():
             return False
-        if self._storage.has_link(self._source.object_id(), self._target.object_id(), self._bidirectional):
+
+        existing_link = self._storage.link_between(self._source.object_id(), self._target.object_id())
+        if existing_link is not None:
+            same_direction = (
+                existing_link.source_id() == self._source.object_id()
+                and existing_link.target_id() == self._target.object_id()
+            )
+            if self._bidirectional or not same_direction:
+                self._title = "Сделать стрелку двунаправленной"
+                return self._storage.make_link_bidirectional(self._source.object_id(), self._target.object_id())
             return False
+
         arrow = ArrowLink(self._source, self._target, self._bidirectional)
         return self._storage.add(arrow, clear_selection=True, select_new=True)
 

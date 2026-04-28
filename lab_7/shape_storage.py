@@ -158,14 +158,31 @@ class ShapeStorage:
 
     def has_link(self, source_id: str, target_id: str, bidirectional: bool = False) -> bool:
         del bidirectional
+        return self.link_between(source_id, target_id) is not None
+
+    def link_between(self, source_id: str, target_id: str) -> ArrowLink | None:
         for shape in self._shapes:
             if not isinstance(shape, ArrowLink):
                 continue
             same_direction = shape.source_id() == source_id and shape.target_id() == target_id
             reverse_direction = shape.source_id() == target_id and shape.target_id() == source_id
             if same_direction or reverse_direction:
-                return True
-        return False
+                return shape
+        return None
+
+    def make_link_bidirectional(self, source_id: str, target_id: str) -> bool:
+        link = self.link_between(source_id, target_id)
+        if link is None or link.bidirectional:
+            return False
+
+        changed = link.set_bidirectional(True)
+        changed = self._clear_selection() or changed
+        if not link.is_selected():
+            link.set_selected(True)
+            changed = True
+        if changed:
+            self._notify("structure")
+        return changed
 
     def shape_at(self, point: QPointF) -> Shape | None:
         draw_order = list(self.iter_draw_order())
