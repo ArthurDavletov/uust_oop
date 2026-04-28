@@ -20,11 +20,11 @@ def unique_toc_entries(*tocs):
     result = []
     for toc in tocs:
         for entry in toc:
-            destination = entry[0]
+            destination, source, typecode = entry[:3]
             if destination in seen:
                 continue
             seen.add(destination)
-            result.append(entry)
+            result.append((destination, source, typecode))
     return result
 
 
