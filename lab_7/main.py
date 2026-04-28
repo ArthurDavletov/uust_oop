@@ -41,7 +41,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Лабораторная работа 7. Дерево объектов и подписка")
+        self.setWindowTitle("Лабораторная работа 7")
         self.setMinimumSize(980, 560)
 
         self._storage = ShapeStorage()
