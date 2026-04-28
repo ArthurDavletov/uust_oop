@@ -351,7 +351,7 @@ class ShapeStorage:
     def iter_draw_order(self) -> Iterator[Shape]:
         links = [shape for shape in self._shapes if shape.is_link()]
         others = [shape for shape in self._shapes if not shape.is_link()]
-        return iter(links + others)
+        return iter(others + links)
 
     def top_level_shapes(self) -> list[Shape]:
         return list(self._shapes)
