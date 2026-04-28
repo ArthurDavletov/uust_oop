@@ -75,7 +75,7 @@ shared_files = unique_toc_entries(
 
 coll = COLLECT(
     *executables,
-    *shared_files,
+    shared_files,
     strip=False,
     upx=True,
     upx_exclude=[],
